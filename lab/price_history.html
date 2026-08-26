@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="mock_api.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Price History — Exchange Comparison & Spread Analysis</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2128; --border: #2d333b;
+    --text: #e6edf3; --muted: #768390; --accent: #38bdf8;
+    --ex1: #3b82f6; --ex2: #eab308; --spot: #22c55e;
+    --perp-spread: #a78bfa; --hl-basis: #3b82f6; --binance-basis: #eab308;
+    --positive: #34d399; --negative: #f87171; --neutral: #768390;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 0.9rem; padding: 16px; }
+  .nav { display: flex; gap: 6px; padding: 0 0 14px; border-bottom: 1px solid var(--border); margin-bottom: 16px; flex-wrap: wrap; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 4px 12px; border-radius: 5px; font-size: 0.85rem; transition: all 0.15s; }
+  .nav a:hover { color: var(--text); background: var(--panel); }
+  .nav a.active { color: var(--accent); background: rgba(56,189,248,0.1); }
+  h1 { font-size: 1.4rem; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 0.82rem; margin-bottom: 16px; }
+
+  .control-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .control-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .control-row:last-child { margin-bottom: 0; }
+  .control-group { display: flex; flex-direction: column; gap: 3px; }
+  .control-group label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  select, input[type="text"], input[type="date"] { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; font-size: 0.85rem; outline: none; transition: border 0.15s; }
+  select:focus, input:focus { border-color: var(--accent); }
+  select { min-width: 130px; }
+
+  .btn { background: var(--bg); color: var(--accent); border: 1px solid var(--border); border-radius: 5px; padding: 5px 14px; cursor: pointer; font-size: 0.82rem; transition: all 0.15s; user-select: none; }
+  .btn:hover { background: var(--panel2); border-color: var(--accent); }
+  .btn.active { background: rgba(56,189,248,0.15); border-color: var(--accent); }
+  .btn-toggle { display: flex; gap: 4px; align-items: center; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--border); cursor: pointer; font-size: 0.8rem; transition: all 0.15s; user-select: none; }
+  .btn-toggle:hover { border-color: var(--muted); }
+  .btn-toggle.active { background: rgba(56,189,248,0.12); border-color: var(--accent); }
+  .btn-toggle.off { opacity: 0.4; }
+  .btn-toggle .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .divider { width: 1px; height: 28px; background: var(--border); margin: 0 4px; }
+
+  .preset-btn { background: var(--bg); color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: all 0.15s; user-select: none; }
+  .preset-btn:hover { border-color: var(--accent); color: var(--text); }
+  .preset-btn.active { background: rgba(56,189,248,0.15); border-color: var(--accent); color: var(--accent); }
+
+  .tool-btn { display: flex; align-items: center; gap: 4px; }
+  .tool-btn.active { background: rgba(56,189,248,0.2); border-color: var(--accent); color: var(--accent); }
+
+  #magnifier-lens {
+    position: absolute; width: 120px; height: 120px; border: 2px solid var(--accent);
+    border-radius: 50%; pointer-events: none; z-index: 60; display: none;
+    overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  #magnifier-lens canvas { width: 100%; height: 100%; }
+
+  .chart-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  .chart-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .chart-panel-title { font-size: 0.9rem; font-weight: 600; }
+  .chart-legend { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; cursor: pointer; user-select: none; transition: opacity 0.15s; }
+  .legend-item.off { opacity: 0.35; }
+  .legend-dot { width: 12px; height: 3px; border-radius: 2px; }
+  .legend-dot.circle { width: 10px; height: 10px; border-radius: 50%; }
+
+  #main-chart { width: 100%; height: 420px; position: relative; }
+  #spread-chart { width: 100%; height: 200px; position: relative; }
+  .chart-container { position: relative; }
+  .fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: var(--bg); padding: 16px; }
+
+  #drag-zoom-box { position: absolute; border: 1px solid var(--accent); background: rgba(56,189,248,0.1); pointer-events: none; z-index: 50; display: none; }
+
+  .chart-tooltip { position: absolute; background: var(--panel2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 0.78rem; pointer-events: none; z-index: 100; display: none; min-width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .chart-tooltip .tt-time { color: var(--muted); margin-bottom: 4px; font-size: 0.72rem; }
+  .chart-tooltip .tt-row { display: flex; justify-content: space-between; gap: 12px; }
+  .chart-tooltip .tt-label { color: var(--muted); }
+  .chart-tooltip .tt-value { font-family: "SF Mono", Monaco, monospace; }
+  .chart-tooltip .tt-spread { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 4px; }
+
+  .stats-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .stat-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+  .stat-box .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .stat-box .stat-value { font-size: 1.1rem; font-family: "SF Mono", Monaco, monospace; font-weight: 600; }
+  .stat-box .stat-value.positive { color: var(--positive); }
+  .stat-box .stat-value.negative { color: var(--negative); }
+  .stat-box .stat-value.neutral { color: var(--neutral); }
+
+  .data-status { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 0.78rem; color: var(--muted); }
+  .data-status .ds-item { display: flex; align-items: center; gap: 5px; }
+  .ds-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .ds-dot.live { background: var(--positive); box-shadow: 0 0 4px var(--positive); }
+  .ds-dot.stale { background: #fbbf24; }
+  .ds-dot.disconnected { background: var(--negative); }
+  .ds-dot.unavailable { background: var(--muted); }
+
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+  .modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; width: 90%; max-width: 700px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h2 { margin: 0; font-size: 1.1rem; color: var(--accent); }
+  .modal-close { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; padding: 0 4px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-search { padding: 12px 20px; border-bottom: 1px solid var(--border); }
+  .modal-search input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; font-size: 0.9rem; outline: none; }
+  .modal-search input:focus { border-color: var(--accent); }
+  .modal-filters { padding: 8px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 4px; flex-wrap: wrap; }
+  .modal-body { flex: 1; overflow-y: auto; padding: 8px 12px; }
+  .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px; }
+  .asset-card { padding: 8px 12px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; gap: 2px; transition: all 0.1s; }
+  .asset-card:hover { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.2); }
+  .asset-card.selected { background: rgba(56,189,248,0.15); border-color: var(--accent); }
+  .asset-card .sym { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .asset-card .name { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asset-card .exchs { font-size: 0.65rem; color: #64748b; }
+  .asset-card .cat-tag { font-size: 0.6rem; padding: 0 5px; border-radius: 3px; text-transform: uppercase; font-weight: 600; }
+  .cat-crypto { background: rgba(247,147,26,0.15); color: #f7931a; }
+  .cat-stock { background: rgba(52,211,153,0.12); color: #34d399; }
+  .cat-commodity { background: rgba(251,191,36,0.12); color: #fbbf24; }
+  .cat-forex { background: rgba(56,189,248,0.12); color: #38bdf8; }
+  .cat-index { background: rgba(167,139,250,0.12); color: #a78bfa; }
+  .cat-etf { background: rgba(244,114,182,0.12); color: #f472b6; }
+  .cat-preipo { background: rgba(248,113,113,0.12); color: #f87171; }
+  .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .modal-footer .info { font-size: 0.8rem; color: var(--muted); }
+  .asset-pick-btn { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .asset-pick-btn:hover { border-color: var(--accent); }
+  .asset-pick-btn .pick-sym { font-weight: 600; color: var(--accent); }
+  .asset-pick-btn .pick-name { font-size: 0.72rem; color: var(--muted); }
+  .cat-btn { background: var(--bg); color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 0.78rem; transition: all 0.15s; }
+  .cat-btn:hover { border-color: var(--accent); color: var(--text); }
+  .cat-btn.active { background: rgba(56,189,248,0.15); border-color: var(--accent); color: var(--accent); }
+
+  .loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13,17,23,0.7); display: none; justify-content: center; align-items: center; z-index: 50; border-radius: 8px; }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 768px) {
+    .control-row { flex-direction: column; align-items: stretch; }
+    select { min-width: 0; width: 100%; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="../index.html">Dashboard</a>
+  <a href="charts.html">Charts</a>
+  <a href="price_history.html" class="active">Price History</a>
+  <a href="research.html">Research</a>
+  <a href="paper.html">Paper Trade</a>
+  <a href="subaccount_paper.html">Sub-Account</a>
+  <a href="scanner.html">Scanner</a>
+      <a href="pair_scan.html">Pair Scan</a>
+  <a href="opportunities.html">Opportunities</a>
+</nav>
+
+<h1>Price History</h1>
+<div class="subtitle">Exchange Comparison &amp; Spread Analysis</div>
+
+<!-- Control Panel -->
+<div class="control-panel">
+  <div class="control-row">
+    <div class="control-group">
+      <label>Exchange 1</label>
+      <select id="ex1"></select>
+    </div>
+    <div class="control-group">
+      <label>Asset 1</label>
+      <button class="asset-pick-btn" onclick="openCoinPicker('1')">
+        <span class="pick-sym" id="asset1_display">BTC</span>
+        <span class="pick-name" id="asset1_name">Bitcoin</span>
+      </button>
+    </div>
+    <div class="divider"></div>
+    <div class="control-group">
+      <label>Exchange 2</label>
+      <select id="ex2"></select>
+    </div>
+    <div class="control-group">
+      <label>Asset 2</label>
+      <button class="asset-pick-btn" onclick="openCoinPicker('2')">
+        <span class="pick-sym" id="asset2_display">BTC</span>
+        <span class="pick-name" id="asset2_name">Bitcoin</span>
+      </button>
+    </div>
+    <div class="divider"></div>
+    <div class="control-group">
+      <label>Timeframe</label>
+      <select id="timeframe">
+        <option value="1m">1m</option>
+        <option value="5m">5m</option>
+        <option value="15m">15m</option>
+        <option value="30m">30m</option>
+        <option value="1h" selected>1h</option>
+        <option value="4h">4h</option>
+        <option value="1D">1D</option>
+        <option value="1W">1W</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Start Date</label>
+      <input type="date" id="start-date">
+    </div>
+    <div class="control-group">
+      <label>End Date</label>
+      <input type="date" id="end-date">
+    </div>
+  </div>
+
+  <div class="control-row">
+    <div class="btn-toggle active" id="toggle-compare" onclick="toggleCompare()">
+      <span class="dot" style="background:var(--accent)"></span> Compare
+    </div>
+    <div class="divider"></div>
+    <div class="btn-toggle active" id="toggle-ex1" onclick="toggleSeries('ex1')">
+      <span class="dot" style="background:var(--ex1)"></span> Exchange 1
+    </div>
+    <div class="btn-toggle active" id="toggle-ex2" onclick="toggleSeries('ex2')">
+      <span class="dot" style="background:var(--ex2)"></span> Exchange 2
+    </div>
+    <div class="btn-toggle active" id="toggle-spot" onclick="toggleSeries('spot')">
+      <span class="dot" style="background:var(--spot)"></span> Spot
+    </div>
+    <div class="divider"></div>
+    <div class="btn-toggle active" id="toggle-perp-spread" onclick="toggleSeries('perpSpread')">
+      <span class="dot" style="background:var(--perp-spread)"></span> Perp Spread
+    </div>
+    <div class="divider"></div>
+    <button class="btn" style="font-weight:600; padding: 6px 20px;" onclick="loadData()">Load Data</button>
+    <button class="btn" onclick="exportData()">Export CSV</button>
+    <button class="btn" style="background:rgba(167,139,250,0.15); border-color:#a78bfa; color:#a78bfa;" onclick="simulateSpread()">▶ Simulate Spread</button>
+    <span id="last-load-time" style="color:var(--muted); font-size:0.75rem; margin-left:8px;"></span>
+  </div>
+
+  <!-- Range Presets -->
+  <div class="control-row">
+    <span style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">Range:</span>
+    <button class="preset-btn" onclick="setRangePreset('1H')">1H</button>
+    <button class="preset-btn" onclick="setRangePreset('4H')">4H</button>
+    <button class="preset-btn" onclick="setRangePreset('12H')">12H</button>
+    <button class="preset-btn" onclick="setRangePreset('1D')">1D</button>
+    <button class="preset-btn" onclick="setRangePreset('3D')">3D</button>
+    <button class="preset-btn active" onclick="setRangePreset('1W')">1W</button>
+    <button class="preset-btn" onclick="setRangePreset('1M')">1M</button>
+    <button class="preset-btn" onclick="setRangePreset('3M')">3M</button>
+    <button class="preset-btn" onclick="setRangePreset('6M')">6M</button>
+    <button class="preset-btn" onclick="setRangePreset('1Y')">1Y</button>
+    <button class="preset-btn" onclick="setRangePreset('ALL')">ALL</button>
+  </div>
+
+  <!-- Zoom Toolbar -->
+  <div class="control-row">
+    <span style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">Tools:</span>
+    <button class="btn tool-btn active" id="tool-pan" onclick="setTool('pan')" title="Pan (default)"><span style="font-size:1rem">✋</span> Pan</button>
+    <button class="btn tool-btn" id="tool-select" onclick="setTool('select')" title="Drag to select area and zoom in"><span style="font-size:1rem">⬚</span> Select Zoom</button>
+    <button class="btn tool-btn" id="tool-magnify" onclick="setTool('magnify')" title="Magnifier — hover to zoom in on a region"><span style="font-size:1rem">🔍</span> Magnify</button>
+    <div class="divider"></div>
+    <span style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-right:4px;">Zoom:</span>
+    <button class="btn" onclick="zoomIn()" title="Zoom In">+</button>
+    <button class="btn" onclick="zoomOut()" title="Zoom Out">−</button>
+    <button class="btn" onclick="resetZoom()" title="Reset Zoom">Reset</button>
+    <button class="btn" onclick="fitContent()" title="Fit / Auto Scale">Fit</button>
+    <button class="btn" onclick="panLeft()" title="Pan Left">◀</button>
+    <button class="btn" onclick="panRight()" title="Pan Right">▶</button>
+    <button class="btn" onclick="toggleFullscreen()" title="Full Screen">Fullscreen</button>
+    <span style="color:var(--muted); font-size:0.72rem; margin-left:8px;" id="tool-hint">Mouse wheel: zoom · Double-click: reset</span>
+  </div>
+</div>
+
+<!-- Main Price Chart -->
+<div class="chart-panel" id="main-panel">
+  <div class="chart-panel-header">
+    <div class="chart-panel-title" id="main-title">PRICE CHART</div>
+    <div class="chart-legend" id="main-legend">
+      <div class="legend-item" onclick="toggleSeries('ex1')">
+        <span class="legend-dot" style="background:var(--ex1)"></span>
+        <span id="legend-ex1-name">Exchange 1</span>
+      </div>
+      <div class="legend-item" id="legend-ex2-item" onclick="toggleSeries('ex2')">
+        <span class="legend-dot" style="background:var(--ex2)"></span>
+        <span id="legend-ex2-name">Exchange 2</span>
+      </div>
+      <div class="legend-item" onclick="toggleSeries('spot')">
+        <span class="legend-dot" style="background:var(--spot)"></span>
+        <span>SPOT</span>
+      </div>
+    </div>
+  </div>
+  <div class="chart-container" id="main-chart-container">
+    <div id="main-chart"></div>
+    <div id="drag-zoom-box"></div>
+    <div id="magnifier-lens"><canvas id="magnifier-canvas"></canvas></div>
+    <div class="chart-tooltip" id="main-tooltip"></div>
+    <div class="loading-overlay" id="main-loading"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- Spread Chart -->
+<div class="chart-panel" id="spread-panel">
+  <div class="chart-panel-header">
+    <div class="chart-panel-title">SPREAD — LINE CHART</div>
+    <div class="chart-legend">
+      <div class="legend-item" onclick="toggleSeries('perpSpread')">
+        <span class="legend-dot" style="background:var(--perp-spread)"></span>
+        <span>Perp Spread (Ex1 − Ex2)</span>
+      </div>
+    </div>
+  </div>
+  <div class="chart-container">
+    <div id="spread-chart"></div>
+    <div class="chart-tooltip" id="spread-tooltip"></div>
+  </div>
+</div>
+
+<!-- Statistics -->
+<div class="stats-panel">
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-box">
+      <div class="stat-label">Current Spread</div>
+      <div class="stat-value" id="stat-current">—</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Max Positive</div>
+      <div class="stat-value positive" id="stat-max-pos">—</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Max Negative</div>
+      <div class="stat-value negative" id="stat-max-neg">—</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Average</div>
+      <div class="stat-value" id="stat-avg">—</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Zero Crossings</div>
+      <div class="stat-value" id="stat-crossings">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Source Status -->
+<div class="data-status" id="data-status">
+  <div class="ds-item"><span class="ds-dot" id="ds-ex1-dot"></span> <span id="ds-ex1">Exchange 1: —</span></div>
+  <div class="ds-item"><span class="ds-dot" id="ds-ex2-dot"></span> <span id="ds-ex2">Exchange 2: —</span></div>
+  <div class="ds-item"><span class="ds-dot" id="ds-spot-dot"></span> <span id="ds-spot">Spot: —</span></div>
+</div>
+
+<script>
+// ═══ State ════════════════════════════════════════════════════════
+let EXCHANGES = ["Hyperliquid", "Paradex", "GRVT", "Aevo", "Asterdex", "Binance", "Variational", "Interactive Brokers"];
+let allAssets = [];
+let mainChart = null, spreadChart = null;
+let ex1Series = null, ex2Series = null, spotSeries = null;
+let perpSpreadSeries = null;
+let spreadZeroLine = null;
+
+let settings = {
+  compare: true,
+  showEx1: true, showEx2: true, showSpot: true,
+  showPerpSpread: true,
+};
+
+  // All data is loaded once and stored. Zoom only changes visible range.
+let currentData = {
+  ex1: [],       // [{time, open, high, low, close, volume}]
+  ex2: [],       // same
+  spotSeries: [],// [{time, value}]
+  // Computed spread (computed once from raw data, never changes with zoom)
+  perpSpread: [],  // [{time, value}] = ex1.close - ex2.close
+};
+
+let isCrosshairSyncing = false;
+let isFirstLoad = true;
+let currentTool = 'pan'; // 'pan' | 'select' | 'magnify'
+
+// ═══ Init ═════════════════════════════════════════════════════════
+async function init() {
+  // Default to ALL available data — will be refined after first asset load
+  const today = new Date();
+  const longAgo = new Date(today.getTime() - 365 * 24 * 3600 * 1000);
+  document.getElementById('end-date').value = today.toISOString().split('T')[0];
+  document.getElementById('start-date').value = longAgo.toISOString().split('T')[0];
+
+  await loadAssets();
+  await loadExchanges();
+  populateSelectors();
+  setupEventListeners();
+  createCharts();
+  setupDragToZoom();
+  setupMagnifier();
+  // Auto-detect data range for default asset and load
+  await autoDetectDataRange();
+  await loadData();
+}
+
+// Auto-detect available data range for the selected asset and set date pickers
+async function autoDetectDataRange() {
+  const coin1 = document.getElementById('asset1_display').textContent;
+  try {
+    const res = await fetch(`/history/data_range?coin=${coin1}`);
+    const data = await res.json();
+    if (data.min_ts && data.max_ts) {
+      const minDate = new Date(data.min_ts * 1000).toISOString().split('T')[0];
+      const maxDate = new Date(data.max_ts * 1000).toISOString().split('T')[0];
+      document.getElementById('start-date').value = minDate;
+      document.getElementById('end-date').value = maxDate;
+      // Auto-select exchanges that have data for this asset
+      const ex1Sel = document.getElementById('ex1');
+      const ex2Sel = document.getElementById('ex2');
+      const available = data.exchanges.filter(e => e.count > 10).map(e => e.exchange);
+      if (available.length > 0) {
+        // Set Exchange 1 to the exchange with most data
+        if (available[0] !== ex1Sel.value) ex1Sel.value = available[0];
+        // Set Exchange 2 to the second best, or same as ex1
+        if (available.length > 1) {
+          if (available[1] !== ex2Sel.value) ex2Sel.value = available[1];
+        } else {
+          ex2Sel.value = available[0];
+        }
+      }
+      updateLegendNames();
+    }
+  } catch (e) {
+    console.error('Failed to auto-detect data range:', e);
+  }
+}
+
+async function loadAssets() {
+  try {
+    const res = await fetch("/assets");
+    const data = await res.json();
+    if (data.ok) allAssets = data.assets;
+  } catch (e) { console.error("Failed to load assets:", e); }
+}
+
+async function loadExchanges() {
+  try {
+    const res = await fetch("/exchanges");
+    const data = await res.json();
+    if (data.ok && data.exchanges) EXCHANGES = data.exchanges;
+  } catch (e) {}
+}
+
+function populateSelectors() {
+  const ex1Sel = document.getElementById('ex1');
+  const ex2Sel = document.getElementById('ex2');
+  ex1Sel.innerHTML = '';
+  ex2Sel.innerHTML = '';
+  EXCHANGES.forEach(ex => {
+    ex1Sel.add(new Option(ex, ex));
+    ex2Sel.add(new Option(ex, ex));
+  });
+  ex1Sel.value = 'Hyperliquid';
+  ex2Sel.value = 'Binance';
+
+  if (allAssets.length > 0) {
+    const btc = allAssets.find(a => a.symbol === 'BTC') || allAssets[0];
+    document.getElementById('asset1_display').textContent = btc.symbol;
+    document.getElementById('asset1_name').textContent = btc.name;
+    document.getElementById('asset2_display').textContent = btc.symbol;
+    document.getElementById('asset2_name').textContent = btc.name;
+  }
+  updateLegendNames();
+}
+
+function updateLegendNames() {
+  document.getElementById('legend-ex1-name').textContent = document.getElementById('ex1').value;
+  document.getElementById('legend-ex2-name').textContent = document.getElementById('ex2').value;
+}
+
+function setupEventListeners() {
+  ['ex1', 'ex2', 'timeframe', 'start-date', 'end-date'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+      updateLegendNames();
+      isFirstLoad = true;
+      loadData();
+    });
+  });
+}
+
+// ═══ Chart Creation ═══════════════════════════════════════════════
+function createCharts() {
+  const commonOpts = {
+    layout: { background: { color: 'transparent' }, textColor: '#768390', fontSize: 11 },
+    grid: { vertLines: { color: 'rgba(45,51,59,0.5)' }, horzLines: { color: 'rgba(45,51,59,0.5)' } },
+    crosshair: {
+      mode: 1, // Normal crosshair
+      vertLine: { color: '#38bdf8', width: 1, style: 2, labelBackgroundColor: '#1c2128' },
+      horzLine: { color: '#38bdf8', width: 1, style: 2, labelBackgroundColor: '#1c2128' },
+    },
+    rightPriceScale: { borderColor: '#2d333b', autoScale: true, mode: 0 },
+    timeScale: { borderColor: '#2d333b', timeVisible: true, secondsVisible: false },
+  };
+
+  const mainEl = document.getElementById('main-chart');
+  mainEl.innerHTML = '';
+  mainChart = LightweightCharts.createChart(mainEl, { ...commonOpts, height: 420 });
+
+  const spreadEl = document.getElementById('spread-chart');
+  spreadEl.innerHTML = '';
+  spreadChart = LightweightCharts.createChart(spreadEl, { ...commonOpts, height: 200 });
+
+  // Main chart series — all lines
+  ex1Series = mainChart.addLineSeries({
+    color: '#3b82f6', lineWidth: 2,
+    priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+  });
+  ex2Series = mainChart.addLineSeries({
+    color: '#eab308', lineWidth: 2,
+    priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+  });
+  spotSeries = mainChart.addLineSeries({
+    color: '#22c55e', lineWidth: 1, lineStyle: 2,
+    priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+  });
+
+  // Spread chart series — line only
+  perpSpreadSeries = spreadChart.addLineSeries({
+    color: '#a78bfa', lineWidth: 2,
+    priceFormat: { type: 'price', precision: 4, minMove: 0.0001 },
+  });
+
+  // Zero line on spread chart
+  spreadZeroLine = perpSpreadSeries.createPriceLine({
+    price: 0, color: '#768390', lineWidth: 1, lineStyle: 2,
+    axisLabelVisible: true, title: '0',
+  });
+
+  // ═══ Synchronized Zoom — bidirectional with debounce guard ═══
+  // Use a timestamp + timeout approach because lightweight-charts fires
+  // range change callbacks asynchronously, so a simple boolean guard fails.
+  let syncTimer = null;
+  function syncRange(source, target) {
+    const range = source.timeScale().getVisibleLogicalRange();
+    if (!range) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(() => {
+      target.timeScale().setVisibleLogicalRange(range);
+    }, 0);
+  }
+  mainChart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+    if (!range) return;
+    syncRange(mainChart, spreadChart);
+  });
+  spreadChart.timeScale().subscribeVisibleLogicalRangeChange(range => {
+    if (!range) return;
+    syncRange(spreadChart, mainChart);
+  });
+
+  // ═══ Synchronized Crosshair ═══
+  mainChart.subscribeCrosshairMove(param => {
+    if (isCrosshairSyncing) return;
+    if (param.time && param.point) {
+      isCrosshairSyncing = true;
+      spreadChart.setCrosshairPosition(param.point.x, param.point.y, perpSpreadSeries);
+      isCrosshairSyncing = false;
+      showTooltip(param.time);
+    } else {
+      isCrosshairSyncing = true;
+      spreadChart.clearCrosshairPosition();
+      isCrosshairSyncing = false;
+      hideTooltips();
+    }
+  });
+  spreadChart.subscribeCrosshairMove(param => {
+    if (isCrosshairSyncing) return;
+    if (param.time && param.point) {
+      isCrosshairSyncing = true;
+      mainChart.setCrosshairPosition(param.point.x, param.point.y, ex1Series);
+      isCrosshairSyncing = false;
+      showTooltip(param.time);
+    } else {
+      isCrosshairSyncing = true;
+      mainChart.clearCrosshairPosition();
+      isCrosshairSyncing = false;
+      hideTooltips();
+    }
+  });
+
+  // Double-click to reset zoom
+  mainEl.addEventListener('dblclick', () => resetZoom());
+  spreadEl.addEventListener('dblclick', () => resetZoom());
+
+  // Responsive resize
+  const ro = new ResizeObserver(() => {
+    if (mainChart) mainChart.applyOptions({ width: mainEl.clientWidth });
+    if (spreadChart) spreadChart.applyOptions({ width: spreadEl.clientWidth });
+  });
+  ro.observe(mainEl);
+  ro.observe(spreadEl);
+}
+
+// ═══ Data Loading ═════════════════════════════════════════════════
+async function loadData() {
+  const ex1 = document.getElementById('ex1').value;
+  const ex2 = document.getElementById('ex2').value;
+  const coin1 = document.getElementById('asset1_display').textContent;
+  const coin2 = document.getElementById('asset2_display').textContent;
+  const tf = document.getElementById('timeframe').value;
+  const startDate = document.getElementById('start-date').value;
+  const endDate = document.getElementById('end-date').value;
+
+  if (!startDate || !endDate) { alert('Please select a start and end date'); return; }
+  const startTs = Math.floor(new Date(startDate + 'T00:00:00').getTime() / 1000);
+  const endTs = Math.floor(new Date(endDate + 'T23:59:59').getTime() / 1000);
+  if (endTs <= startTs) { alert('End date must be after start date'); return; }
+
+  document.getElementById('main-loading').classList.add('show');
+  document.getElementById('main-title').textContent = `${coin1} — ${startDate} to ${endDate}`;
+
+  try {
+    const params = `start_ts=${startTs}&end_ts=${endTs}&timeframe=${tf}`;
+
+    // Helper: fetch JSON safely, return empty on error
+    const safeFetch = async (url) => {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        return await res.json();
+      } catch (e) {
+        console.error('Fetch failed:', url, e);
+        return null;
+      }
+    };
+
+    const ex1Data = await safeFetch(`/history/candles?exchange=${encodeURIComponent(ex1)}&coin=${coin1}&${params}`);
+    const ex2Data = settings.compare ? await safeFetch(`/history/candles?exchange=${encodeURIComponent(ex2)}&coin=${coin2}&${params}`) : null;
+    const spotData = await safeFetch(`/history/spot_series?coin=${coin1}&${params}`);
+
+    currentData.ex1 = ex1Data?.candles || [];
+    currentData.ex2 = ex2Data?.candles || [];
+    currentData.spotSeries = spotData?.series || [];
+
+    // Compute all spreads ONCE from raw data — these never change with zoom
+    computeSpreads();
+
+    renderCharts();
+    renderStats();
+    renderDataStatus(ex1, ex2);
+
+    const now = new Date();
+    document.getElementById('last-load-time').textContent = `Loaded at ${now.toLocaleTimeString("en-US", { hour12: false })}`;
+  } catch (e) {
+    console.error("Failed to load data:", e);
+  } finally {
+    document.getElementById('main-loading').classList.remove('show');
+  }
+}
+
+// ═══ Compute Spreads — done ONCE, never changes with zoom ═════════
+function computeSpreads() {
+  const ex1Map = new Map(currentData.ex1.map(c => [c.time, c.close]));
+  const ex2Map = new Map(currentData.ex2.map(c => [c.time, c.close]));
+  const spotMap = new Map(currentData.spotSeries.map(p => [p.time, p.value]));
+
+  const allTimes = new Set([...ex1Map.keys(), ...ex2Map.keys(), ...spotMap.keys()]);
+
+  const perpSpread = [];
+  for (const time of allTimes) {
+    const p1 = ex1Map.get(time);
+    const p2 = ex2Map.get(time);
+    if (p1 != null && p2 != null) perpSpread.push({ time, value: p1 - p2 });
+  }
+  perpSpread.sort((a, b) => a.time - b.time);
+
+  currentData.perpSpread = perpSpread;
+}
+
+// ═══ Render — set data once, preserve zoom ════════════════════════
+function renderCharts() {
+  const savedRange = mainChart.timeScale().getVisibleLogicalRange();
+
+  // Main chart: Exchange 1 (blue line)
+  let ex1Line = currentData.ex1.map(c => ({ time: c.time, value: c.close }));
+  ex1Series.setData(ex1Line);
+  ex1Series.applyOptions({ visible: settings.showEx1 && ex1Line.length > 0 });
+
+  // Main chart: Exchange 2 (yellow line)
+  if (settings.compare) {
+    let ex2Line = currentData.ex2.map(c => ({ time: c.time, value: c.close }));
+    ex2Series.setData(ex2Line);
+    ex2Series.applyOptions({ visible: settings.showEx2 && ex2Line.length > 0 });
+  } else {
+    ex2Series.setData([]);
+    ex2Series.applyOptions({ visible: false });
+  }
+
+  // Main chart: Spot (green line)
+  if (currentData.spotSeries.length > 0) {
+    spotSeries.setData(currentData.spotSeries.map(p => ({ time: p.time, value: p.value })));
+    spotSeries.applyOptions({ visible: settings.showSpot });
+  } else {
+    spotSeries.setData([]);
+    spotSeries.applyOptions({ visible: false });
+  }
+
+  // Spread chart: Perp Spread (purple line)
+  perpSpreadSeries.setData(currentData.perpSpread);
+  perpSpreadSeries.applyOptions({ visible: settings.compare && settings.showPerpSpread && currentData.perpSpread.length > 0 });
+
+  // Restore zoom or fit on first load
+  if (isFirstLoad) {
+    mainChart.timeScale().fitContent();
+    spreadChart.timeScale().fitContent();
+    isFirstLoad = false;
+  } else if (savedRange) {
+    mainChart.timeScale().setVisibleLogicalRange(savedRange);
+    spreadChart.timeScale().setVisibleLogicalRange(savedRange);
+  }
+}
+
+// ═══ Stats ════════════════════════════════════════════════════════
+function renderStats() {
+  const fmt = (v, dec = 4) => v != null ? (v >= 0 ? '+' : '') + v.toFixed(dec) : '—';
+  const cls = (v) => v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral';
+
+  // Current spread = last perp spread value
+  const ps = currentData.perpSpread;
+  if (ps.length > 0) {
+    const cur = ps[ps.length - 1].value;
+    const el = document.getElementById('stat-current');
+    el.textContent = fmt(cur);
+    el.className = 'stat-value ' + cls(cur);
+
+    const spreads = ps.map(p => p.value);
+    const maxPos = Math.max(...spreads);
+    const maxNeg = Math.min(...spreads);
+    const avg = spreads.reduce((a, b) => a + b, 0) / spreads.length;
+    let crossings = 0;
+    for (let i = 1; i < spreads.length; i++) {
+      if ((spreads[i-1] > 0 && spreads[i] <= 0) || (spreads[i-1] < 0 && spreads[i] >= 0)) crossings++;
+    }
+    document.getElementById('stat-max-pos').textContent = '+' + maxPos.toFixed(4);
+    document.getElementById('stat-max-neg').textContent = maxNeg.toFixed(4);
+    document.getElementById('stat-avg').textContent = fmt(avg);
+    document.getElementById('stat-crossings').textContent = crossings;
+  } else {
+    ['stat-current', 'stat-max-pos', 'stat-max-neg', 'stat-avg', 'stat-crossings'].forEach(id => {
+      document.getElementById(id).textContent = '—';
+      document.getElementById(id).className = 'stat-value';
+    });
+  }
+}
+
+// ═══ Data Status ══════════════════════════════════════════════════
+function renderDataStatus(ex1, ex2) {
+  fetch('/data').then(r => r.json()).then(d => {
+    const coin1 = document.getElementById('asset1_display').textContent;
+    const coin2 = document.getElementById('asset2_display').textContent;
+    const now = Date.now() / 1000;
+    const setStatus = (dotId, textId, label, exchange, entry) => {
+      const dot = document.getElementById(dotId);
+      const text = document.getElementById(textId);
+      if (entry && entry.mid) {
+        const age = now - (entry.ts || 0);
+        if (entry.status === 'connected' && age < 10) {
+          dot.className = 'ds-dot live';
+          text.textContent = `${label}: ${exchange} · Live`;
+        } else if (entry.status === 'connected' && age < 60) {
+          dot.className = 'ds-dot stale';
+          text.textContent = `${label}: ${exchange} · Stale (${Math.round(age)}s)`;
+        } else {
+          dot.className = 'ds-dot disconnected';
+          text.textContent = `${label}: ${exchange} · ${entry.status || 'unknown'}`;
+        }
+      } else {
+        dot.className = 'ds-dot unavailable';
+        text.textContent = `${label}: ${exchange} · Unavailable`;
+      }
+    };
+    setStatus('ds-ex1-dot', 'ds-ex1', 'Exchange 1', ex1, d.data?.[coin1]?.[ex1]);
+    setStatus('ds-ex2-dot', 'ds-ex2', 'Exchange 2', ex2, d.data?.[coin2]?.[ex2]);
+    const spotEntry = d.data?.[coin1]?.['Binance'];
+    setStatus('ds-spot-dot', 'ds-spot', 'Spot', 'Binance', spotEntry);
+  }).catch(() => {});
+}
+
+// ═══ Crosshair Tooltip ════════════════════════════════════════════
+// Find nearest data point by timestamp (handles type mismatch / precision issues)
+function findNearest(arr, time) {
+  if (!arr || arr.length === 0) return null;
+  const t = Number(time);
+  if (isNaN(t)) return null;
+  // Exact match first
+  let exact = arr.find(x => x.time === t);
+  if (exact) return exact;
+  // Try integer match
+  exact = arr.find(x => x.time === Math.floor(t));
+  if (exact) return exact;
+  // Binary search for closest
+  let lo = 0, hi = arr.length - 1, best = null, bestDiff = Infinity;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const diff = Math.abs(arr[mid].time - t);
+    if (diff < bestDiff) { bestDiff = diff; best = arr[mid]; }
+    if (arr[mid].time < t) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  // Only return if within 1 bucket of the target
+  return bestDiff < 120 ? best : null;
+}
+
+function showTooltip(time) {
+  const ex1Name = document.getElementById('ex1').value;
+  const ex2Name = document.getElementById('ex2').value;
+  const ex1Point = findNearest(currentData.ex1, time);
+  const ex2Point = findNearest(currentData.ex2, time);
+  const spotPoint = findNearest(currentData.spotSeries, time);
+  const perpSpreadPoint = findNearest(currentData.perpSpread, time);
+  const hlBasisPoint = findNearest(currentData.hlBasis, time);
+  const binanceBasisPoint = findNearest(currentData.binanceBasis, time);
+
+  // Use the actual timestamp from found data for display
+  const displayTime = ex1Point?.time || ex2Point?.time || spotPoint?.time || Number(time);
+  const dt = new Date(displayTime * 1000).toLocaleString("en-US", { hour12: false });
+  let html = `<div class="tt-time">${dt}</div>`;
+
+  if (ex1Point) html += `<div class="tt-row"><span class="tt-label" style="color:var(--ex1)">${ex1Name}</span><span class="tt-value">$${Number(ex1Point.close).toFixed(2)}</span></div>`;
+  if (ex2Point && settings.compare) html += `<div class="tt-row"><span class="tt-label" style="color:var(--ex2)">${ex2Name}</span><span class="tt-value">$${Number(ex2Point.close).toFixed(2)}</span></div>`;
+  if (spotPoint) html += `<div class="tt-row"><span class="tt-label" style="color:var(--spot)">SPOT</span><span class="tt-value">$${Number(spotPoint.value).toFixed(2)}</span></div>`;
+
+  // Compute spread from the ACTUAL prices shown — don't rely on pre-computed array
+  if (ex1Point && ex2Point && settings.compare) {
+    const v = Number(ex1Point.close) - Number(ex2Point.close);
+    const c = v > 0 ? 'var(--positive)' : v < 0 ? 'var(--negative)' : 'var(--neutral)';
+    html += `<div class="tt-row tt-spread"><span class="tt-label" style="color:var(--perp-spread)">Spread (Ex1−Ex2)</span><span class="tt-value" style="color:${c}">${v >= 0 ? '+' : ''}$${v.toFixed(4)}</span></div>`;
+  }
+
+  const mainTT = document.getElementById('main-tooltip');
+  const spreadTT = document.getElementById('spread-tooltip');
+  mainTT.innerHTML = html;
+  spreadTT.innerHTML = html;
+  mainTT.style.display = 'block';
+  spreadTT.style.display = 'block';
+
+  // Position tooltips
+  const mainRect = document.getElementById('main-chart').getBoundingClientRect();
+  const spreadRect = document.getElementById('spread-chart').getBoundingClientRect();
+  mainTT.style.left = '10px';
+  mainTT.style.top = '10px';
+  spreadTT.style.left = '10px';
+  spreadTT.style.top = '10px';
+}
+
+function hideTooltips() {
+  document.getElementById('main-tooltip').style.display = 'none';
+  document.getElementById('spread-tooltip').style.display = 'none';
+}
+
+// ═══ Toggles ══════════════════════════════════════════════════════
+function toggleCompare() {
+  settings.compare = !settings.compare;
+  document.getElementById('toggle-compare').classList.toggle('active', settings.compare);
+  document.getElementById('legend-ex2-item').style.display = settings.compare ? '' : 'none';
+  isFirstLoad = true;
+  loadData();
+}
+
+function toggleSeries(which) {
+  const keyMap = {
+    ex1: 'showEx1', ex2: 'showEx2', spot: 'showSpot',
+    perpSpread: 'showPerpSpread',
+  };
+  const key = keyMap[which];
+  settings[key] = !settings[key];
+  const btn = document.getElementById(`toggle-${which}`);
+  if (btn) {
+    btn.classList.toggle('active', settings[key]);
+    btn.classList.toggle('off', !settings[key]);
+  }
+  // Just toggle visibility — no data reload, no zoom reset
+  if (which === 'ex1') ex1Series.applyOptions({ visible: settings.showEx1 });
+  else if (which === 'ex2') ex2Series.applyOptions({ visible: settings.compare && settings.showEx2 });
+  else if (which === 'spot') spotSeries.applyOptions({ visible: settings.showSpot });
+  else if (which === 'perpSpread') perpSpreadSeries.applyOptions({ visible: settings.compare && settings.showPerpSpread });
+}
+
+// ═══ Zoom Tools ═══════════════════════════════════════════════════
+function zoomIn() {
+  const range = mainChart.timeScale().getVisibleLogicalRange();
+  if (!range) return;
+  const width = range.to - range.from;
+  const center = (range.from + range.to) / 2;
+  const newWidth = width * 0.7;
+  mainChart.timeScale().setVisibleLogicalRange({ from: center - newWidth/2, to: center + newWidth/2 });
+}
+
+function zoomOut() {
+  const range = mainChart.timeScale().getVisibleLogicalRange();
+  if (!range) return;
+  const width = range.to - range.from;
+  const center = (range.from + range.to) / 2;
+  const newWidth = width * 1.4;
+  mainChart.timeScale().setVisibleLogicalRange({ from: center - newWidth/2, to: center + newWidth/2 });
+}
+
+function resetZoom() {
+  mainChart.timeScale().fitContent();
+  spreadChart.timeScale().fitContent();
+}
+
+function fitContent() { resetZoom(); }
+
+function panLeft() {
+  const range = mainChart.timeScale().getVisibleLogicalRange();
+  if (!range) return;
+  const width = range.to - range.from;
+  const shift = width * 0.2;
+  mainChart.timeScale().setVisibleLogicalRange({ from: range.from - shift, to: range.to - shift });
+}
+
+function panRight() {
+  const range = mainChart.timeScale().getVisibleLogicalRange();
+  if (!range) return;
+  const width = range.to - range.from;
+  const shift = width * 0.2;
+  mainChart.timeScale().setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
+}
+
+function toggleFullscreen() {
+  const panel = document.getElementById('main-panel');
+  panel.classList.toggle('fullscreen');
+  setTimeout(() => {
+    if (mainChart) mainChart.applyOptions({ width: panel.clientWidth - 32, height: panel.clientHeight - 80 });
+  }, 100);
+}
+
+// ═══ Range Presets ════════════════════════════════════════════════
+function setRangePreset(preset) {
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  const btn = [...document.querySelectorAll('.preset-btn')].find(b => b.textContent === preset);
+  if (btn) btn.classList.add('active');
+
+  const now = new Date();
+  const msMap = { '1H': 3600e3, '4H': 4*3600e3, '12H': 12*3600e3, '1D': 24*3600e3, '3D': 3*24*3600e3, '1W': 7*24*3600e3, '1M': 30*24*3600e3, '3M': 90*24*3600e3, '6M': 180*24*3600e3, '1Y': 365*24*3600e3, 'ALL': 365*10*24*3600e3 };
+  const start = new Date(now.getTime() - (msMap[preset] || 7*24*3600e3));
+  document.getElementById('start-date').value = start.toISOString().split('T')[0];
+  document.getElementById('end-date').value = now.toISOString().split('T')[0];
+  isFirstLoad = true;
+  loadData();
+}
+
+// ═══ Tool Selection ═══════════════════════════════════════════════
+function setTool(tool) {
+  currentTool = tool;
+  ['pan', 'select', 'magnify'].forEach(t => {
+    const btn = document.getElementById(`tool-${t}`);
+    if (btn) btn.classList.toggle('active', t === tool);
+  });
+  const hints = {
+    pan: 'Mouse wheel: zoom · Double-click: reset',
+    select: 'Click and drag on chart to select area · Release to zoom both charts',
+    magnify: 'Hover over chart to see magnified view · Click to zoom into that spot',
+  };
+  document.getElementById('tool-hint').textContent = hints[tool] || hints.pan;
+
+  // Show/hide magnifier lens
+  const lens = document.getElementById('magnifier-lens');
+  if (tool === 'magnify') {
+    lens.style.display = 'block';
+  } else {
+    lens.style.display = 'none';
+  }
+
+  // Change cursor
+  const chartEl = document.getElementById('main-chart');
+  if (tool === 'select') chartEl.style.cursor = 'crosshair';
+  else if (tool === 'magnify') chartEl.style.cursor = 'zoom-in';
+  else chartEl.style.cursor = 'default';
+}
+
+// ═══ Drag-to-Zoom (only active when 'select' tool is selected) ════
+function setupDragToZoom() {
+  const container = document.getElementById('main-chart-container');
+  const chartEl = document.getElementById('main-chart');
+  const box = document.getElementById('drag-zoom-box');
+  let isDragging = false;
+  let startX = 0, startY = 0;
+
+  container.addEventListener('mousedown', (e) => {
+    if (currentTool !== 'select') return;
+    if (e.button !== 0) return;
+    isDragging = true;
+    const rect = chartEl.getBoundingClientRect();
+    startX = e.clientX - rect.left;
+    startY = e.clientY - rect.top;
+    box.style.display = 'block';
+    box.style.left = startX + 'px';
+    box.style.top = startY + 'px';
+    box.style.width = '0px';
+    box.style.height = '0px';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const rect = chartEl.getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+    const left = Math.min(startX, x);
+    const top = Math.min(startY, y);
+    const width = Math.abs(x - startX);
+    const height = Math.abs(y - startY);
+    box.style.left = left + 'px';
+    box.style.top = top + 'px';
+    box.style.width = width + 'px';
+    box.style.height = height + 'px';
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    box.style.display = 'none';
+    const rect = chartEl.getBoundingClientRect();
+    const endX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+    if (Math.abs(endX - startX) < 10) return;
+
+    const fromPx = Math.min(startX, endX);
+    const toPx = Math.max(startX, endX);
+    const ts = mainChart.timeScale();
+
+    // Convert pixel coordinates directly to logical range indices
+    const fromLogical = ts.coordinateToLogical(fromPx);
+    const toLogical = ts.coordinateToLogical(toPx);
+
+    if (fromLogical != null && toLogical != null && toLogical > fromLogical) {
+      mainChart.timeScale().setVisibleLogicalRange({ from: fromLogical, to: toLogical });
+      spreadChart.timeScale().setVisibleLogicalRange({ from: fromLogical, to: toLogical });
+    }
+  });
+
+  // Touch: double-tap to reset
+  let lastTap = 0;
+  chartEl.addEventListener('touchend', () => {
+    const now = Date.now();
+    if (now - lastTap < 300) resetZoom();
+    lastTap = now;
+  });
+}
+
+// ═══ Magnifier Tool ═══════════════════════════════════════════════
+function setupMagnifier() {
+  const chartEl = document.getElementById('main-chart');
+  const lens = document.getElementById('magnifier-lens');
+  const canvas = document.getElementById('magnifier-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = 240;  // 2x for sharper rendering
+  canvas.height = 240;
+
+  chartEl.addEventListener('mousemove', (e) => {
+    if (currentTool !== 'magnify') return;
+    const rect = chartEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    // Position lens offset from cursor
+    lens.style.left = (x + 15) + 'px';
+    lens.style.top = (y + 15) + 'px';
+    // Keep lens within chart bounds
+    const lensRect = lens.getBoundingClientRect();
+    if (lensRect.right > rect.right) lens.style.left = (x - 135) + 'px';
+    if (lensRect.bottom > rect.bottom) lens.style.top = (y - 135) + 'px';
+
+    // Draw magnified region — capture a 60x60 area around cursor and scale 4x
+    const srcSize = 60;
+    const srcX = Math.max(0, x - srcSize / 2);
+    const srcY = Math.max(0, y - srcSize / 2);
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Use the chart's canvas/tbody as source — lightweight-charts renders to canvas
+    const chartCanvas = chartEl.querySelector('canvas');
+    if (chartCanvas) {
+      try {
+        ctx.drawImage(chartCanvas, srcX, srcY, srcSize, srcSize, 0, 0, canvas.width, canvas.height);
+      } catch (err) {}
+    }
+  });
+
+  chartEl.addEventListener('mouseleave', () => {
+    if (currentTool === 'magnify') lens.style.display = 'none';
+  });
+  chartEl.addEventListener('mouseenter', () => {
+    if (currentTool === 'magnify') lens.style.display = 'block';
+  });
+
+  // Click to zoom into that spot
+  chartEl.addEventListener('click', (e) => {
+    if (currentTool !== 'magnify') return;
+    const rect = chartEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const ts = mainChart.timeScale();
+    const range = ts.getVisibleLogicalRange();
+    if (!range) return;
+    const width = range.to - range.from;
+    const centerLogical = (x / rect.width) * width + range.from;
+    const newWidth = width * 0.3;
+    ts.setVisibleLogicalRange({ from: centerLogical - newWidth / 2, to: centerLogical + newWidth / 2 });
+  });
+}
+
+// ═══ Simulate ═════════════════════════════════════════════════════
+function simulateSpread() {
+  const ex1 = document.getElementById('ex1').value;
+  const ex2 = document.getElementById('ex2').value;
+  const coin = document.getElementById('asset1_display').textContent;
+  const startDate = document.getElementById('start-date').value;
+  const endDate = document.getElementById('end-date').value;
+  const startTs = Math.floor(new Date(startDate + 'T00:00:00').getTime() / 1000);
+  const endTs = Math.floor(new Date(endDate + 'T23:59:59').getTime() / 1000);
+  const params = new URLSearchParams({ ex1, ex2, coin, start_ts: startTs, end_ts: endTs });
+  window.open(`/simulation.html?${params.toString()}`, '_blank');
+}
+
+// ═══ Export ═══════════════════════════════════════════════════════
+function exportData() {
+  const ex1 = document.getElementById('ex1').value;
+  const ex2 = document.getElementById('ex2').value;
+  const coin1 = document.getElementById('asset1_display').textContent;
+  const rows = [['timestamp', 'datetime', 'ex1_price', 'ex2_price', 'spot_price', 'perp_spread', 'hl_basis', 'binance_basis']];
+  const ex1Map = new Map(currentData.ex1.map(c => [c.time, c.close]));
+  const ex2Map = new Map(currentData.ex2.map(c => [c.time, c.close]));
+  const spotMap = new Map(currentData.spotSeries.map(p => [p.time, p.value]));
+  const allTimes = new Set([...ex1Map.keys(), ...ex2Map.keys(), ...spotMap.keys()]);
+  for (const t of [...allTimes].sort((a,b) => a-b)) {
+    const p1 = ex1Map.get(t), p2 = ex2Map.get(t), ps = spotMap.get(t);
+    rows.push([t, new Date(t*1000).toISOString(),
+      p1 ?? '', p2 ?? '', ps ?? '',
+      (p1!=null && p2!=null) ? (p1-p2).toFixed(4) : '',
+      (p1!=null && ps!=null) ? (p1-ps).toFixed(4) : '',
+      (p2!=null && ps!=null) ? (p2-ps).toFixed(4) : '']);
+  }
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `price_history_${coin1}_${ex1}_vs_${ex2}_${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══ Asset Picker Modal ═══════════════════════════════════════════
+let modalContext = null, modalCategory = "all", modalSearch = "";
+
+function catClass(cat) {
+  return { crypto: "cat-crypto", stock: "cat-stock", commodity: "cat-commodity",
+           forex: "cat-forex", index: "cat-index", etf: "cat-etf", preipo: "cat-preipo" }[cat] || "cat-crypto";
+}
+
+function exchShort(exchanges) {
+  const map = { Hyperliquid: "Hype", Paradex: "Para", GRVT: "GRVT", Aevo: "Aevo", Asterdex: "Aste", Binance: "Bina", Variational: "Vari", "Interactive Brokers": "IBKR" };
+  return (exchanges || []).map(e => map[e] || e.substring(0, 4)).join(" · ");
+}
+
+function getModalAssets() {
+  let assets = allAssets.filter(a => a.exchanges && a.exchanges.length >= 1);
+  if (modalCategory !== "all") assets = assets.filter(a => a.category === modalCategory);
+  if (modalSearch) {
+    const q = modalSearch.toUpperCase();
+    assets = assets.filter(a => a.symbol.includes(q) || a.name.toUpperCase().includes(q));
+  }
+  return assets;
+}
+
+function openCoinPicker(slot) {
+  modalContext = slot;
+  modalCategory = "all";
+  modalSearch = "";
+  const titles = { '1': "Select Asset 1", '2': "Select Asset 2" };
+  const currentSym = document.getElementById(`asset${slot}_display`).textContent;
+  renderModal(titles[slot] || "Select Asset", currentSym);
+}
+
+function renderModal(title, currentSym) {
+  closeModal();
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.id = "asset-modal";
+  overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>${title}</h2>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-search">
+        <input type="text" id="modal_search_input" placeholder="Search by symbol or name..." value="${modalSearch}" autocomplete="off">
+      </div>
+      <div class="modal-filters">
+        <button class="cat-btn ${modalCategory==='all'?'active':''}" onclick="setModalCat('all')">All</button>
+        <button class="cat-btn ${modalCategory==='crypto'?'active':''}" onclick="setModalCat('crypto')">Crypto</button>
+        <button class="cat-btn ${modalCategory==='stock'?'active':''}" onclick="setModalCat('stock')">Stocks</button>
+        <button class="cat-btn ${modalCategory==='commodity'?'active':''}" onclick="setModalCat('commodity')">Commodities</button>
+        <button class="cat-btn ${modalCategory==='forex'?'active':''}" onclick="setModalCat('forex')">Forex</button>
+        <button class="cat-btn ${modalCategory==='index'?'active':''}" onclick="setModalCat('index')">Indices</button>
+        <button class="cat-btn ${modalCategory==='etf'?'active':''}" onclick="setModalCat('etf')">ETFs</button>
+        <button class="cat-btn ${modalCategory==='preipo'?'active':''}" onclick="setModalCat('preipo')">Pre-IPO</button>
+      </div>
+      <div class="modal-body" id="modal_body"></div>
+      <div class="modal-footer">
+        <span class="info" id="modal_info"></span>
+        <button class="btn" onclick="closeModal()">Done</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const si = document.getElementById("modal_search_input");
+  si.addEventListener("input", () => { modalSearch = si.value; renderModalBody(currentSym); });
+  si.focus();
+  renderModalBody(currentSym);
+}
+
+function setModalCat(cat) {
+  modalCategory = cat;
+  document.querySelectorAll(".modal-filters .cat-btn").forEach(b => {
+    b.classList.toggle("active", b.textContent === cat || (cat === "all" && b.textContent === "All"));
+  });
+  const cs = document.getElementById(`asset${modalContext}_display`).textContent;
+  renderModalBody(cs);
+}
+
+function renderModalBody(currentSym) {
+  const body = document.getElementById("modal_body");
+  const assets = getModalAssets();
+  const info = document.getElementById("modal_info");
+  if (!assets.length) {
+    body.innerHTML = "<div style='padding:20px;text-align:center;color:#64748b;'>No assets found</div>";
+    info.textContent = "0 assets";
+    return;
+  }
+  body.innerHTML = `<div class="asset-grid">${assets.map(a => {
+    const sel = a.symbol === currentSym;
+    return `<div class="asset-card ${sel?'selected':''}" data-sym="${a.symbol}" data-name="${a.name}">
+      <div class="sym"><b>${a.symbol}</b><span class="cat-tag ${catClass(a.category)}">${a.category}</span></div>
+      <div class="name">${a.name}</div>
+      <div class="exchs">${exchShort(a.exchanges)}</div>
+    </div>`;
+  }).join("")}</div>`;
+  info.textContent = `${assets.length} assets`;
+  body.querySelectorAll(".asset-card").forEach(card => {
+    card.onclick = async () => {
+      const sym = card.dataset.sym, name = card.dataset.name, slot = modalContext;
+      document.getElementById(`asset${slot}_display`).textContent = sym;
+      document.getElementById(`asset${slot}_name`).textContent = name;
+      closeModal();
+      isFirstLoad = true;
+      // Auto-detect data range and smart-select exchanges for this asset
+      await autoDetectDataRange();
+      await loadData();
+    };
+  });
+}
+
+function closeModal() {
+  const m = document.getElementById("asset-modal");
+  if (m) m.remove();
+}
+
+// ═══ Start ════════════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>

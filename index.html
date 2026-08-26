@@ -46,7 +46,7 @@
   .hero p { font-size: 20px; color: #9CA3AF; max-width: 600px; margin-bottom: 40px; }
 
   /* Service cards */
-  .services { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 0 auto; }
+  .services { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-width: 1200px; margin: 0 auto; }
   .service-card {
     background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
     padding: 40px 32px; text-align: center; transition: transform 0.2s, border-color 0.2s;
@@ -84,7 +84,7 @@
     .hero p { font-size: 16px; }
     .section { padding: 60px 24px; }
     .section-header h2 { font-size: 28px; }
-    .services { grid-template-columns: 1fr; }
+    .services { grid-template-columns: repeat(2, 1fr); }
   }
 
   /* Animations */
@@ -102,6 +102,7 @@
   <div class="nav-links">
     <a href="index.html" class="active">Home</a>
     <a href="trading.html">Trading</a>
+    <a href="lab.html">Lab</a>
     <a href="design.html">Design</a>
     <a href="events.html">Events</a>
   </div>
@@ -127,6 +128,12 @@
       <h3>Automated Trading</h3>
       <p>A proprietary spread-trading engine executing cross-account arbitrage across crypto, stocks, commodities, FX, indices, bonds, pre-IPO, and prediction markets — 24/7.</p>
       <div class="service-link">Learn more &rarr;</div>
+    </a>
+    <a href="lab.html" class="service-card" style="border-color: rgba(0,212,255,0.1);">
+      <div class="service-icon blue">&#128300;</div>
+      <h3>Research Lab</h3>
+      <p>Interactive demo of the full research suite — spread charts, pair scanner, paper trading, backtesting, and opportunity signals. Try it live.</p>
+      <div class="service-link">Explore &rarr;</div>
     </a>
     <a href="design.html" class="service-card purple">
       <div class="service-icon purple">&#127912;</div>

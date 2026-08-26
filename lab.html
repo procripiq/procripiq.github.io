@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProCripiq — Research Lab</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #0A0E17; color: #E5E7EB; overflow-x: hidden; line-height: 1.6; }
+  a { text-decoration: none; color: inherit; }
+
+  .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 20px 60px; display: flex; justify-content: space-between; align-items: center; background: rgba(10,14,23,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .nav-logo { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .nav-logo span { color: #00D4FF; }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a { color: #9CA3AF; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: #fff; }
+
+  .hero { padding: 140px 40px 40px; text-align: center; background: radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 60%), #0A0E17; }
+  .hero-badge { display: inline-block; padding: 6px 16px; margin-bottom: 24px; border: 1px solid rgba(0,212,255,0.3); border-radius: 100px; font-size: 12px; font-weight: 600; color: #00D4FF; letter-spacing: 1px; text-transform: uppercase; background: rgba(0,212,255,0.05); }
+  .hero h1 { font-size: 48px; font-weight: 800; color: #fff; letter-spacing: -1.5px; margin-bottom: 16px; }
+  .hero h1 .accent { color: #00D4FF; }
+  .hero p { font-size: 18px; color: #9CA3AF; max-width: 600px; margin: 0 auto 20px; }
+  .hero .demo-note { font-size: 13px; color: #6B7280; padding: 8px 20px; border: 1px solid rgba(251,191,36,0.2); border-radius: 100px; background: rgba(251,191,36,0.05); color: #FBBF24; display: inline-block; margin-top: 10px; }
+
+  .section { padding: 60px 60px; max-width: 1200px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 40px; }
+  .section-header h2 { font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+  .section-header p { font-size: 16px; color: #9CA3AF; }
+
+  .tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .tool-card {
+    background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+    padding: 28px; transition: transform 0.2s, border-color 0.2s; cursor: pointer;
+    display: flex; flex-direction: column;
+  }
+  .tool-card:hover { transform: translateY(-4px); border-color: rgba(0,212,255,0.2); }
+  .tool-icon { font-size: 28px; margin-bottom: 16px; }
+  .tool-card h3 { font-size: 17px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+  .tool-card p { font-size: 14px; color: #9CA3AF; flex-grow: 1; margin-bottom: 16px; }
+  .tool-link { font-size: 13px; font-weight: 600; color: #00D4FF; }
+
+  .footer { padding: 40px 60px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); background: #080B12; }
+  .footer p { font-size: 14px; color: #6B7280; }
+  .footer p span { color: #00D4FF; font-weight: 600; }
+
+  @media (max-width: 900px) {
+    .nav { padding: 16px 24px; } .nav-links { display: none; }
+    .hero h1 { font-size: 32px; }
+    .section { padding: 40px 24px; }
+    .tools-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="../index.html" class="nav-logo">Pro<span>Cripiq</span></a>
+  <div class="nav-links">
+    <a href="../index.html">Home</a>
+    <a href="../trading.html">Trading</a>
+    <a href="../design.html">Design</a>
+    <a href="../events.html">Events</a>
+    <a href="landing.html" class="active">Lab</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">Research Lab</div>
+  <h1>Interactive <span class="accent">Research Lab</span></h1>
+  <p>Explore the full suite of research and analysis tools that power the trading engine. Each tool is fully interactive with live demo data.</p>
+  <div class="demo-note">&#9888; Demo Mode — All data is simulated for demonstration</div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>Tools & Dashboards</h2>
+    <p>Click any tool to launch the interactive demo.</p>
+  </div>
+  <div class="tools-grid">
+    <a href="index.html" class="tool-card">
+      <div class="tool-icon">&#128200;</div>
+      <h3>Cross-Venue Dashboard</h3>
+      <p>Live multi-venue pricing, spreads, liquidations, top movers, and market sentiment in one view.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="landing.html" class="tool-card">
+      <div class="tool-icon">&#128640;</div>
+      <h3>Landing Overview</h3>
+      <p>Summary landing page with links to all research tools and quick stats.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="charts.html" class="tool-card">
+      <div class="tool-icon">&#128202;</div>
+      <h3>Spread Charts</h3>
+      <p>Historical spread charts with P&L overlay, funding differentials, and cross-venue comparison.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="research.html" class="tool-card">
+      <div class="tool-icon">&#128300;</div>
+      <h3>Research — Spread Close & Distribution</h3>
+      <p>Backtest spread entry/exit thresholds across pairs with auto-std mode and distribution analysis.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="paper.html" class="tool-card">
+      <div class="tool-icon">&#128209;</div>
+      <h3>Paper Trade Backtest</h3>
+      <p>Simulate cross-venue spread trades with custom fees, slippage, and entry/exit parameters.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="subaccount_paper.html" class="tool-card">
+      <div class="tool-icon">&#129518;</div>
+      <h3>Sub-Account Strategy Lab</h3>
+      <p>Full hedge-cycle simulation with rehedge recovery, gated groups, and equity curve tracking.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="scanner.html" class="tool-card">
+      <div class="tool-icon">&#128270;</div>
+      <h3>Pair Analysis Scanner</h3>
+      <p>Statistical pair analysis — correlation, cointegration, half-life, Hurst exponent, and spread metrics.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="pair_scan.html" class="tool-card">
+      <div class="tool-icon">&#128269;</div>
+      <h3>Pair Scanner — Uncorrelated Assets</h3>
+      <p>Scan all available assets to find uncorrelated pairs suitable for spread trading.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="opportunities.html" class="tool-card">
+      <div class="tool-icon">&#9889;</div>
+      <h3>Opportunities — Spread Harvester</h3>
+      <p>Real-time opportunity signals, watchlist management, and signal statistics.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="simulation.html" class="tool-card">
+      <div class="tool-icon">&#9881;</div>
+      <h3>Spread Simulation — BB + Grid</h3>
+      <p>Bollinger Band and grid strategy backtester with configurable levels, stops, and funding.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+    <a href="price_history.html" class="tool-card">
+      <div class="tool-icon">&#128197;</div>
+      <h3>Price History — Venue Comparison</h3>
+      <p>Historical price comparison across venues with spread analysis and data range visualization.</p>
+      <div class="tool-link">Open &rarr;</div>
+    </a>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>Pro<span>Cripiq</span> Research Lab &middot; Demo Mode with Simulated Data</p>
+</footer>
+
+</body>
+</html>

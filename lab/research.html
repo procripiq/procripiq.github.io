@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="mock_api.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Research — Perp Spread Close & Distribution</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+  <style>
+    :root { --bg: #0f1115; --panel: #181a20; --panel2: #1e2128; --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8; --ok: #34d399; --warn: #fbbf24; --bad: #f87171; --border: #23262d; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d333b; padding-bottom: 15px; margin-bottom: 20px; }
+    h1 { margin: 0; color: var(--accent); font-size: 1.3rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .nav { display: flex; gap: 14px; font-size: 0.85rem; align-items: center; }
+    .nav a { color: var(--accent); }
+    .nav a.active { font-weight: 600; text-decoration: underline; }
+    .nav .discover-btn {
+      margin-left: auto; padding: 4px 12px; font-size: 0.8rem;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--accent); cursor: pointer;
+    }
+    .nav .discover-btn:hover { background: var(--accent); color: var(--bg); }
+    .nav .discover-btn:disabled { opacity: 0.5; cursor: wait; }
+    .discover-result {
+      position: fixed; top: 20px; right: 20px; z-index: 9999;
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 20px; max-width: 420px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4); display: none;
+    }
+    .discover-result.show { display: block; }
+    .discover-result h3 { margin: 0 0 8px; font-size: 1rem; color: var(--accent); }
+    .discover-result .exch-row { margin: 4px 0; font-size: 0.85rem; }
+    .discover-result .added { color: var(--ok); }
+    .discover-result .removed { color: var(--err); }
+    .discover-result .restart-note { margin-top: 10px; padding: 8px; background: rgba(251,191,36,0.1); border-radius: 6px; font-size: 0.8rem; color: var(--warn); }
+    .discover-result .close-btn { position: absolute; top: 8px; right: 12px; cursor: pointer; color: var(--muted); }
+
+    /* Toolbar */
+    .toolbar { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .toolbar-group { display: flex; align-items: center; gap: 6px; }
+    .toolbar-label { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .toolbar input, .toolbar select { background: var(--bg); color: var(--text); border: 1px solid #2d333b; padding: 5px 10px; border-radius: 5px; font-size: 0.85rem; }
+    .autocomplete-input { outline: none; }
+    .autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; z-index: 1000; max-height: 250px; overflow-y: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+    .autocomplete-item { padding: 6px 10px; cursor: pointer; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+    .autocomplete-item:hover, .autocomplete-item.active { background: rgba(56,189,248,0.15); }
+    .autocomplete-item .cat-badge { font-size: 0.7rem; color: var(--muted); background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 3px; }
+    .autocomplete-checklist-item { padding: 4px 8px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+    .autocomplete-checklist-item:hover { background: rgba(56,189,248,0.15); }
+    .autocomplete-checklist-item input { width: auto; }
+    .cat-btn { background: var(--bg); color: var(--muted); border: 1px solid #2d333b; border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 0.78rem; transition: all 0.15s; }
+    .cat-btn:hover { border-color: var(--accent); color: var(--text); }
+    .cat-btn.active { background: rgba(56,189,248,0.15); border-color: var(--accent); color: var(--accent); }
+    .cat-btn-secondary { background: var(--bg); color: var(--muted); border: 1px solid #2d333b; border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 0.78rem; transition: all 0.15s; margin-left: 8px; }
+    .cat-btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+    .autocomplete-item .exch-badges { font-size: 0.65rem; display: flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; max-width: 180px; }
+    .autocomplete-item .exch-badge { background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 2px; white-space: nowrap; }
+
+    /* Asset picker modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+    .modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; width: 90%; max-width: 700px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { margin: 0; font-size: 1.1rem; color: var(--accent); }
+    .modal-close { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; padding: 0 4px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-search { padding: 12px 20px; border-bottom: 1px solid var(--border); }
+    .modal-search input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid #2d333b; border-radius: 6px; padding: 8px 14px; font-size: 0.9rem; outline: none; }
+    .modal-search input:focus { border-color: var(--accent); }
+    .modal-filters { padding: 8px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 8px 12px; }
+    .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px; }
+    .asset-card { padding: 8px 12px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; gap: 2px; transition: all 0.1s; }
+    .asset-card:hover { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.2); }
+    .asset-card.selected { background: rgba(56,189,248,0.15); border-color: var(--accent); }
+    .asset-card .sym { font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+    .asset-card .name { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .asset-card .exchs { font-size: 0.65rem; color: #64748b; }
+    .asset-card .cat-tag { font-size: 0.6rem; padding: 0 5px; border-radius: 3px; text-transform: uppercase; font-weight: 600; }
+    .cat-crypto { background: rgba(247,147,26,0.15); color: #f7931a; }
+    .cat-stock { background: rgba(52,211,153,0.12); color: #34d399; }
+    .cat-commodity { background: rgba(251,191,36,0.12); color: #fbbf24; }
+    .cat-forex { background: rgba(56,189,248,0.12); color: #38bdf8; }
+    .cat-index { background: rgba(167,139,250,0.12); color: #a78bfa; }
+    .cat-etf { background: rgba(244,114,182,0.12); color: #f472b6; }
+    .cat-preipo { background: rgba(248,113,113,0.12); color: #f87171; }
+    .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-footer .info { font-size: 0.8rem; color: var(--muted); }
+    .asset-pick-btn { background: var(--bg); color: var(--text); border: 1px solid #2d333b; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: all 0.15s; }
+    .asset-pick-btn:hover { border-color: var(--accent); }
+    .asset-pick-btn .pick-sym { font-weight: 600; color: var(--accent); }
+    .asset-pick-btn .pick-name { font-size: 0.75rem; color: var(--muted); }
+    .btn { background: var(--bg); color: var(--accent); border: 1px solid #2d333b; border-radius: 5px; padding: 5px 14px; cursor: pointer; font-size: 0.85rem; transition: background 0.15s; }
+    .btn:hover { background: #23262d; }
+    .btn.secondary { color: var(--text); }
+    .status-text { color: var(--muted); font-size: 0.8rem; }
+
+    /* Tip */
+    .tip { background: #14161b; border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px; color: var(--muted); font-size: 0.82rem; }
+    .tip h3 { margin: 0 0 8px; color: var(--accent); font-size: 0.95rem; }
+    .tip ul { margin: 6px 0 0 18px; padding: 0; }
+
+    /* Summary cards */
+    .summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .summary-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; flex: 1 1 180px; }
+    .summary-card h3 { margin: 0 0 6px; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .summary-card .big { font-size: 1.2rem; color: var(--text); font-weight: 600; }
+    .summary-card .sub { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+
+    /* Table */
+    .table-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 20px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--muted); font-weight: 500; cursor: pointer; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    th:hover { color: var(--text); }
+    th.sort-asc::after { content: " ↑"; color: var(--accent); }
+    th.sort-desc::after { content: " ↓"; color: var(--accent); }
+    #trade-table thead th { position: sticky; top: 0; background: var(--bg); z-index: 1; }
+    tr { cursor: pointer; }
+    tr:hover td { background: var(--panel2); }
+    tr.selected td { background: #233043; }
+    tr.row-good td { background: rgba(52, 211, 153, 0.05); }
+    tr.row-bad td { background: rgba(248, 113, 113, 0.05); }
+    .action-link { display: inline-block; background: #2d333b; color: var(--accent); border: 1px solid #3d444d; border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+
+    /* Charts */
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .chart-box { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; height: 320px; display: flex; flex-direction: column; }
+    .chart-box h2 { font-size: 0.95rem; margin: 0 0 10px; }
+    .chart-box canvas { flex: 1; min-height: 0; width: 100%; }
+
+    .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.68rem; font-weight: 600; }
+    .badge-rec { background: rgba(52, 211, 153, 0.15); color: var(--ok); border: 1px solid rgba(52, 211, 153, 0.3); }
+
+    /* Toggle */
+    .toggle { display: flex; align-items: center; gap: 6px; }
+    .toggle input { width: 16px; height: 16px; cursor: pointer; }
+    .retention-warning { font-size: 0.75rem; color: #f0a040; margin: 2px 0 0 0; }
+    @keyframes flashRed { 0%,100% { border-color: #f87171; box-shadow: 0 0 4px #f87171; } 50% { border-color: #7f1d1d; box-shadow: 0 0 0 #f87171; } }
+    .flash-red { animation: flashRed 0.8s infinite; border: 1px solid #f87171 !important; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Research — Perp Spread Close & Distribution</h1>
+      <div class="retention-warning">Historical data limited to the last 14 days</div>
+      <nav class="nav">
+        <a href="../index.html">Dashboard</a>
+        <a href="charts.html">Charts</a>
+        <a href="price_history.html">Price History</a>
+        <a href="research.html" class="active">Research</a>
+        <a href="paper.html">Paper Trade</a>
+        <a href="subaccount_paper.html">Sub-Account</a>
+        <a href="scanner.html">Scanner</a>
+      <a href="pair_scan.html">Pair Scan</a>
+        <a href="opportunities.html">Opportunities</a>
+        <button class="discover-btn" id="discover-btn" onclick="discoverAssets()">Discover Assets</button>
+      </nav>
+      <div class="discover-result" id="discover-result">
+        <span class="close-btn" onclick="document.getElementById('discover-result').classList.remove('show')">&times;</span>
+        <h3 id="discover-title">Discovering Assets...</h3>
+        <div id="discover-body"></div>
+      </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <span class="toolbar-label">Preset</span>
+        <select id="preset" onchange="applyPreset()" style="width: 140px;">
+          <option value="" selected disabled>Select preset</option>
+          <option value="auto">Auto (std-based)</option>
+          <option value="conservative">Conservative</option>
+          <option value="balanced">Balanced</option>
+          <option value="aggressive">Aggressive</option>
+        </select>
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Hours</span>
+        <input type="number" id="hours" value="24" step="0.5" min="0.1" max="168" style="width: 60px;">
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Entry</span>
+        <input type="number" id="entry" value="0.12" step="0.01" min="0" style="width: 75px;" oninput="validateThresholds()">%
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Exit</span>
+        <input type="number" id="exit" value="0.04" step="0.01" min="0" style="width: 75px;" oninput="validateThresholds()">%
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Max Std</span>
+        <input type="number" id="max_std" value="0.1" step="0.05" min="0" style="width: 65px;">%
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Margin</span>
+        <input type="number" id="margin" value="1000" step="100" min="1" style="width: 70px;">$
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Leverage</span>
+        <input type="number" id="leverage" value="10" step="1" min="1" style="width: 60px;">x
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Execution</span>
+        <select id="execution" onchange="syncFees()" style="width: 110px;">
+          <option value="taker">Aggressive (taker)</option>
+          <option value="maker" selected>Passive (maker)</option>
+        </select>
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Fee Mult</span>
+        <input type="number" id="fee_multiple" value="1.0" step="0.1" min="0" style="width: 65px;">
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Slippage</span>
+        <input type="number" id="slippage" value="0.02" step="0.01" min="0" style="width: 65px;">%
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Min Trades</span>
+        <input type="number" id="min_trades" value="0" step="1" min="0" style="width: 55px;">
+      </div>
+      <button class="btn" onclick="runResearch()">Run Research</button>
+      <button class="btn secondary" onclick="autoPickBest()" title="Find the best pair (highest Sharpe, min 10 trades, positive P&L) and open it in Charts">Best Pair → Charts</button>
+      <button class="btn secondary" id="stop-btn" onclick="stopResearch()" style="display:none;">Stop</button>
+      <button class="btn secondary" onclick="exportCSV()">Export CSV</button>
+      <div class="toggle">
+        <input type="checkbox" id="auto-refresh">
+        <span class="toolbar-label" id="auto-label">Auto (15s)</span>
+      </div>
+      <span id="status" class="status-text">Pick a preset and click Run Research</span>
+      <span id="data-counter" class="status-text" style="margin-left: auto; color: #94a3b8; font-size: 0.85em;"></span>
+    </div>
+
+    <!-- Auto std-based controls (only visible when Auto preset is selected) -->
+    <div class="toolbar" id="auto-std-controls" style="display: none;">
+      <div class="toolbar-group">
+        <span class="toolbar-label">Entry = N × std</span>
+        <input type="number" id="entry_mult" value="6.0" step="0.5" min="1" style="width: 60px;">σ
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Exit = N × std</span>
+        <input type="number" id="exit_mult" value="2.0" step="0.5" min="0.1" style="width: 60px;">σ
+      </div>
+      <span style="color: var(--muted); font-size: 0.78rem;">Entry/exit thresholds auto-scale to each pair's spread volatility. 6σ entry = trade triggers at 6 standard deviations. 2σ exit = close when spread reverts to 2 std.</span>
+    </div>
+
+    <!-- Mode toolbar -->
+    <div class="toolbar" style="flex-wrap: wrap; align-items: flex-start;">
+      <div class="toolbar-group" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+        <span class="toolbar-label">Strategy Mode</span>
+        <select id="mode" onchange="toggleMode()" style="width: 180px;">
+          <option value="cross" selected>Cross-Exchange</option>
+          <option value="single">Single-Exchange</option>
+        </select>
+      </div>
+
+      <!-- Cross-exchange mode controls -->
+      <div id="cross-controls" style="display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 400px;">
+        <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span class="toolbar-label">Assets (pick 2+)</span>
+            <button class="asset-pick-btn" onclick="openCrossAssetPicker()">
+              <span class="pick-sym" id="cross_pick_display">BTC, HYPE</span>
+              <span class="pick-name" id="cross_pick_count">2 selected</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single-exchange mode controls -->
+      <div id="single-controls" style="display: none; flex-direction: column; gap: 8px; flex: 1; min-width: 400px;">
+        <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span class="toolbar-label">Exchange</span>
+            <select id="single_exchange" style="width: 140px;" onchange="onSingleExchangeChange()">
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span class="toolbar-label">Assets</span>
+            <button class="asset-pick-btn" onclick="openMultiAssetPicker()">
+              <span class="pick-sym" id="multi_pick_display">Select assets...</span>
+              <span class="pick-name" id="selected-count">0 selected</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip">
+      <h3>Quick Start</h3>
+      <ul>
+        <li><b>Mode: Cross-Exchange</b> — compares the perp spread (log ask A − log bid B) of two assets across all exchange pairs. Long the pair on the cheaper exchange, short on the richer one. Bets the spread converges. Includes funding + slippage costs.</li>
+        <li><b>Mode: Single-Exchange</b> — compares all selected perp pair combinations on one exchange. Long one perp, short the other. Bets the ratio reverts to its mean. Matches the Paper Trade backtest strategy.</li>
+        <li><b>Pick a Preset</b> — <b>Auto (std-based)</b> adapts entry/exit to each pair's volatility (recommended). Conservative (0.15%, few safe trades), Balanced (0.10%, default), or Aggressive (0.06%, more trades, higher risk).</li>
+        <li><b>Hours</b> = how far back to look at spread data. Longer windows (24h+) give more trades and more reliable statistics. Shorter windows (1-4h) show recent conditions but may have too few trades to be meaningful.</li>
+        <li><b>Data source</b> = real live perp market data collected from exchange WebSockets (Hyperliquid, Paradex, GRVT, Aevo, Asterdex, Binance). Prices are saved every second to compressed CSV files. All historical files are loaded — if the server has been running for 3 days, Hours=72 will have the full 3 days of data.</li>
+        <li><b>Entry</b> = spread must reach this level before a trade is triggered. Higher = fewer but bigger trades. In Auto mode, this is N × std (adapts per pair).</li>
+        <li><b>Exit</b> = spread must return below this to close the trade. Should be lower than Entry.</li>
+        <li><b>Max Std</b> = filters out pairs with unreliable data (high spread volatility = stale prices). 0.1% is a good default. Anything above 0.5% likely means an exchange has frozen prices.</li>
+        <li><b>Margin x Leverage</b> = your position size. $100 x 10x = $1,000 deployed per trade.</li>
+        <li><b>Execution</b> = Aggressive (taker) fills immediately but costs more in fees. Passive (maker) is cheaper but may not fill.</li>
+        <li><b>Slippage</b> = estimated slippage per fill as % of notional. Applied to all 4 fills (2 entry + 2 exit).</li>
+        <li><b>Funding</b> = perp funding cost accumulated over hold time. Long pays, short receives. Scaled by 8h funding periods.</li>
+        <li>Look for pairs with <b>high Total Net, high Win%, and high Sharpe</b>. The Recommended badge marks the best overall pair.</li>
+        <li>Click <b>Paper trade</b> on any row to simulate that pair with these exact settings.</li>
+      </ul>
+    </div>
+
+    <div class="summary" id="summary"></div>
+
+    <div class="table-wrap">
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable('pair')">Pair</th>
+            <th onclick="sortTable('token')">Token</th>
+            <th onclick="sortTable('current')">Current</th>
+            <th onclick="sortTable('std')">Std</th>
+            <th onclick="sortTable('entry_threshold')">Entry σ</th>
+            <th onclick="sortTable('exit_threshold')">Exit σ</th>
+            <th onclick="sortTable('half_life')">HalfLife</th>
+            <th onclick="sortTable('excursions')">Excurs</th>
+            <th onclick="sortTable('median_close_seconds')">Med Close</th>
+            <th onclick="sortTable('pct_closed_5s')">&le;5s</th>
+            <th onclick="sortTable('win_rate')">Win%</th>
+            <th onclick="sortTable('avg_net')">Avg Net</th>
+            <th onclick="sortTable('total_net_pnl')">Total Net</th>
+            <th onclick="sortTable('return_on_margin')">ROI%</th>
+            <th onclick="sortTable('max_drawdown')">Max DD</th>
+            <th onclick="sortTable('net_sharpe')">Sharpe</th>
+            <th onclick="sortTable('trade_count_a')">Trades A</th>
+            <th onclick="sortTable('trade_count_b')">Trades B</th>
+            <th onclick="sortTable('fee_entry')">Entry Fee</th>
+            <th onclick="sortTable('fee_exit')">Exit Fee</th>
+            <th onclick="sortTable('fee_slip')">Slippage</th>
+            <th onclick="sortTable('total_fund_cost')">Funding</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+      <span class="toolbar-label">Chart Pair:</span>
+      <select id="pair_selector" onchange="selectPair(this.value)" style="background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 0.85rem; min-width: 300px;">
+        <option value="">—</option>
+      </select>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h2>Perp spread distribution percentiles (<span id="dist-pair">—</span>)</h2>
+        <canvas id="pctChart"></canvas>
+      </div>
+      <div class="chart-box">
+        <h2>Close-time buckets (<span id="close-pair">—</span>)</h2>
+        <canvas id="closeChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <h2>Net P&L distribution (<span id="pnl-dist-pair">—</span>)</h2>
+        <canvas id="pnlDistChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box" style="grid-column: 1 / -1; min-height: 420px;">
+        <h2>Perp spread time series (<span id="spread-ts-pair">—</span>)
+          <span style="font-size:0.75rem; color:var(--muted); margin-left:8px;">drag to pan · scroll to zoom</span>
+          <button class="btn secondary" style="font-size:0.7rem; padding:2px 8px; margin-left:8px;" onclick="spreadTsChart.resetZoom()">Reset Zoom</button>
+        </h2>
+        <canvas id="spreadTsChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box" style="grid-column: 1 / -1;">
+        <h2>Cumulative Net P&L (<span id="cum-pnl-pair">—</span>)</h2>
+        <canvas id="cumPnlChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-box" style="grid-column: 1 / -1;">
+        <h2>Trade Volume by Exchange (<span id="vol-pair">—</span>)</h2>
+        <canvas id="volChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Per-trade table -->
+    <div class="table-wrap" style="margin-top: 20px;">
+      <h2 style="font-size: 0.95rem; margin: 0 0 10px;">Trade Log — <span id="trade-log-pair">—</span></h2>
+      <div style="overflow-x: auto; max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 4px;">
+      <table id="trade-table" style="font-size: 0.78rem; min-width: 1600px;">
+        <thead>
+          <tr>
+            <th onclick="sortTradeLog('idx')" class="sortable">#</th>
+            <th onclick="sortTradeLog('side')" class="sortable">Side</th>
+            <th onclick="sortTradeLog('entry_ts')" class="sortable">Entry Time</th>
+            <th onclick="sortTradeLog('exit_ts')" class="sortable">Exit Time</th>
+            <th onclick="sortTradeLog('duration')" class="sortable">Duration</th>
+            <th id="th-entry-a" onclick="sortTradeLog('entry_px_a')" class="sortable">Entry A</th>
+            <th id="th-entry-b" onclick="sortTradeLog('entry_px_b')" class="sortable">Entry B</th>
+            <th id="th-exit-a" onclick="sortTradeLog('exit_px_a')" class="sortable">Exit A</th>
+            <th id="th-exit-b" onclick="sortTradeLog('exit_px_b')" class="sortable">Exit B</th>
+            <th onclick="sortTradeLog('entry_spread')" class="sortable">Entry Spread</th>
+            <th onclick="sortTradeLog('exit_spread')" class="sortable">Exit Spread</th>
+            <th onclick="sortTradeLog('max_spread')" class="sortable">Max Spread</th>
+            <th onclick="sortTradeLog('gross')" class="sortable">Gross</th>
+            <th id="th-fee-a" onclick="sortTradeLog('fee_a_total')" class="sortable">Fee A</th>
+            <th id="th-fee-b" onclick="sortTradeLog('fee_b_total')" class="sortable">Fee B</th>
+            <th id="th-slip-a" onclick="sortTradeLog('slippage_a')" class="sortable">Slip A</th>
+            <th id="th-slip-b" onclick="sortTradeLog('slippage_b')" class="sortable">Slip B</th>
+            <th id="th-fund-a" onclick="sortTradeLog('fund_a')" class="sortable">Fund A</th>
+            <th id="th-fund-b" onclick="sortTradeLog('fund_b')" class="sortable">Fund B</th>
+            <th onclick="sortTradeLog('net')" class="sortable">Net P&L</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div id="trade-log-legend" style="font-size: 0.7rem; color: #64748b; margin-top: 4px;"></div>
+    </div>
+  </div>
+
+  <script>
+    // Register zoom plugin
+    if (window.ChartZoom) Chart.register(window.ChartZoom);
+    let researchData = { results: [] };
+    let selectedPair = null;
+    let autoRefreshTimer = null;
+    let researchAbort = null;
+    let researchTimer = null;
+
+    const pctChart = new Chart(document.getElementById("pctChart").getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: ["p5", "p25", "p50", "p75", "p95"],
+        datasets: [{ label: "spread %", data: [], backgroundColor: "#38bdf8", borderRadius: 4, minBarLength: 2 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+        scales: { y: { title: { display: true, text: "spread %" }, ticks: { callback: v => v.toFixed(4) + "%" } }, x: { ticks: { color: "#94a3b8" } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    const closeChart = new Chart(document.getElementById("closeChart").getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: ["0-5s", "5-10s", "10-30s", "30-60s", "60-300s", ">300s", "open"],
+        datasets: [{ label: "count", data: [], backgroundColor: ["#34d399", "#34d399", "#fbbf24", "#fbbf24", "#f87171", "#f87171", "#94a3b8"], borderRadius: 4, minBarLength: 2 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+        scales: { y: { title: { display: true, text: "excursions" } }, x: { ticks: { color: "#94a3b8" } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    const pnlDistChart = new Chart(document.getElementById("pnlDistChart").getContext("2d"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "net P&L", data: [], backgroundColor: [], borderRadius: 4, minBarLength: 2 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+        scales: { y: { title: { display: true, text: "count" }, ticks: { stepSize: 1 } }, x: { ticks: { color: "#94a3b8" } } },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    const spreadTsChart = new Chart(document.getElementById("spreadTsChart").getContext("2d"), {
+      type: "line",
+      data: { datasets: [
+        { label: "spread", data: [], borderColor: "#38bdf8", pointRadius: 0, borderWidth: 1.5, tension: 0.1 },
+        { label: "rolling mean", data: [], borderColor: "rgba(255,255,255,0.4)", borderWidth: 1, pointRadius: 0, tension: 0.3 },
+        { label: "+2σ band", data: [], borderColor: "rgba(251,191,36,0.3)", borderWidth: 1, borderDash: [3,3], pointRadius: 0, tension: 0.3, fill: "+1" },
+        { label: "-2σ band", data: [], borderColor: "rgba(251,191,36,0.3)", borderWidth: 1, borderDash: [3,3], pointRadius: 0, tension: 0.3, fill: false },
+        { label: "entry", data: [], borderColor: "#fbbf24", borderWidth: 1, borderDash: [4,4], pointRadius: 0 },
+        { label: "exit", data: [], borderColor: "#f87171", borderWidth: 1, borderDash: [4,4], pointRadius: 0 },
+        { label: "funding diff", data: [], borderColor: "rgba(167,139,250,0.6)", borderWidth: 1.5, borderDash: [5,3], pointRadius: 0, tension: 0.1 },
+        { label: "true spread", data: [], borderColor: "#34d399", borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
+        { label: "Trade Entry", data: [], type: "scatter", pointStyle: "triangle", pointRadius: 7, pointHoverRadius: 9, backgroundColor: "rgba(248,113,113,0.8)", borderColor: "#f87171", borderWidth: 1, showLine: false },
+        { label: "Trade Exit", data: [], type: "scatter", pointStyle: "crossRot", pointRadius: 6, pointHoverRadius: 8, backgroundColor: "rgba(52,211,153,0.8)", borderColor: "#34d399", borderWidth: 1, showLine: false },
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+        interaction: { mode: "nearest", intersect: false, axis: "x" },
+        scales: {
+          x: { type: "linear", position: "bottom", ticks: { callback: v => new Date(v * 1000).toLocaleTimeString() } },
+          y: { title: { display: true, text: "perp spread A-B" }, ticks: { callback: v => (v * 100).toFixed(3) + "%" } }
+        },
+        plugins: {
+          legend: { labels: { color: "#e2e8f0", boxWidth: 12, font: { size: 10 } } },
+          tooltip: {
+            backgroundColor: "rgba(15,23,42,0.95)",
+            titleColor: "#e2e8f0",
+            bodyColor: "#e2e8f0",
+            borderColor: "#334155",
+            borderWidth: 1,
+            padding: 10,
+            displayColors: true,
+            callbacks: {
+              title: (items) => {
+                const t = items[0].parsed.x;
+                return new Date(t * 1000).toLocaleString();
+              },
+              label: (ctx) => {
+                const v = ctx.parsed.y;
+                const label = ctx.dataset.label;
+                if (label === "Trade Entry" || label === "Trade Exit") return `${label}: ${(v * 100).toFixed(4)}%`;
+                return `${label}: ${(v * 100).toFixed(4)}%`;
+              },
+              afterBody: (items) => {
+                if (!items.length) return "";
+                const t = items[0].parsed.x;
+                const r = researchData.results.find(x => x.pair === selectedPair);
+                if (!r) return "";
+                const entryLog = r.entry_threshold != null ? r.entry_threshold : parseFloat(document.getElementById("entry").value) / 100;
+                const exitLog = r.exit_threshold != null ? r.exit_threshold : parseFloat(document.getElementById("exit").value) / 100;
+                const spreadVal = items[0].parsed.y;
+                const distEntry = Math.abs(spreadVal) - entryLog;
+                const lines = [
+                  `distance to entry: ${distEntry >= 0 ? distEntry * 100 : 0}% ${distEntry < 0 ? '(past threshold!)' : ''}`,
+                ];
+                // Check if we're near a trade entry/exit and show prices
+                const details = r.excursion_details || [];
+                const fmtPx = (v) => v != null ? "$" + v.toFixed(v < 1 ? 6 : 2) : "—";
+                for (const e of details) {
+                  if (Math.abs(t - e.entry_ts) < 2) {
+                    lines.push(`▼ TRADE ENTRY (${e.side}): A=${fmtPx(e.entry_px_a)} B=${fmtPx(e.entry_px_b)}`);
+                    break;
+                  }
+                  if (e.closed && Math.abs(t - e.exit_ts) < 2) {
+                    lines.push(`▲ TRADE EXIT: A=${fmtPx(e.exit_px_a)} B=${fmtPx(e.exit_px_b)} | Net=$${e.net.toFixed(2)}`);
+                    break;
+                  }
+                }
+                const inTrade = details.some(e => t >= e.entry_ts && (!e.closed || t <= e.exit_ts));
+                lines.push(`trade open: ${inTrade ? 'YES' : 'no'}`);
+                return lines;
+              }
+            }
+          },
+          zoom: {
+            pan: { enabled: true, mode: "x", modifierKey: null },
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x" },
+            limits: { x: { minRange: 1000 } }
+          },
+          annotation: {}
+        }
+      },
+      plugins: [{
+        id: "tradeShading",
+        beforeDatasetsDraw: (chart) => {
+          if (!selectedPair || !researchData.results) return;
+          const r = researchData.results.find(x => x.pair === selectedPair);
+          if (!r || !r.excursion_details) return;
+          const ctx = chart.ctx;
+          const xScale = chart.scales.x;
+          const yScale = chart.scales.y;
+          const yTop = yScale.top;
+          const yBot = yScale.bottom;
+          r.excursion_details.forEach(e => {
+            if (!e.entry_ts) return;
+            const endTs = e.closed ? e.exit_ts : (xScale.max);
+            const x1 = xScale.getPixelForValue(e.entry_ts);
+            const x2 = xScale.getPixelForValue(endTs);
+            ctx.save();
+            ctx.fillStyle = e.profitable ? "rgba(52,211,153,0.07)" : "rgba(248,113,113,0.07)";
+            ctx.fillRect(x1, yTop, x2 - x1, yBot - yTop);
+            ctx.restore();
+          });
+        }
+      }]
+    });
+
+    const cumPnlChart = new Chart(document.getElementById("cumPnlChart").getContext("2d"), {
+      type: "line",
+      data: { datasets: [{
+        label: "Cumulative Net P&L",
+        data: [],
+        borderColor: "#38bdf8",
+        pointRadius: 0,
+        borderWidth: 1.5,
+        tension: 0.1,
+        segment: { borderColor: (ctx) => ctx.p0.parsed.y >= 0 ? "#34d399" : "#f87171" },
+        fill: { target: { value: 0 }, above: "rgba(52, 211, 153, 0.1)", below: "rgba(248, 113, 113, 0.1)" },
+      }]},
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+        scales: {
+          x: { type: "linear", position: "bottom", ticks: { callback: v => "Trade #" + (v + 1) } },
+          y: { title: { display: true, text: "$ cumulative" }, ticks: { callback: v => "$" + (Math.abs(v) < 1 ? v.toFixed(4) : v.toFixed(2)) } }
+        },
+        plugins: { legend: { labels: { color: "#e2e8f0" } } }
+      }
+    });
+
+    const volChart = new Chart(document.getElementById("volChart").getContext("2d"), {
+      type: "bar",
+      data: { labels: [], datasets: [
+        { label: "Trade Count", data: [], backgroundColor: "#38bdf8", borderRadius: 4, yAxisID: "y" },
+        { label: "Volume ($)", data: [], backgroundColor: "#34d399", borderRadius: 4, yAxisID: "y1" },
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
+        scales: {
+          x: { ticks: { color: "#94a3b8" } },
+          y: { type: "linear", position: "left", title: { display: true, text: "Trade Count" }, ticks: { color: "#38bdf8" } },
+          y1: { type: "linear", position: "right", title: { display: true, text: "Volume ($)" }, ticks: { color: "#34d399", callback: v => v >= 1e6 ? "$" + (v/1e6).toFixed(1) + "M" : v >= 1e3 ? "$" + (v/1e3).toFixed(0) + "K" : "$" + v.toFixed(0) }, grid: { drawOnChartArea: false } },
+        },
+        plugins: { legend: { labels: { color: "#e2e8f0" } } }
+      }
+    });
+
+    const PRESETS = {
+      auto:         { hours: 24, entry: 0, exit: 0, entry_mult: 6.0, exit_mult: 2.0, max_std: 0.1, margin: 1000, leverage: 10, execution: "maker", fee_multiple: 1.0, slippage: 0.02 },
+      conservative: { hours: 24, entry: 0.15, exit: 0.05, max_std: 0.1, margin: 1000, leverage: 5, execution: "maker", fee_multiple: 1.0, slippage: 0.02 },
+      balanced:     { hours: 24, entry: 0.10, exit: 0.03, max_std: 0.1, margin: 1000, leverage: 10, execution: "maker", fee_multiple: 1.0, slippage: 0.02 },
+      aggressive:   { hours: 48, entry: 0.06, exit: 0.02, max_std: 0.1, margin: 1000, leverage: 20, execution: "maker", fee_multiple: 1.0, slippage: 0.02 },
+    };
+
+    function applyPreset() {
+      const name = document.getElementById("preset").value;
+      if (!name) return;
+      const p = PRESETS[name];
+      const mode = document.getElementById("mode").value;
+      document.getElementById("hours").value = p.hours;
+      document.getElementById("entry").value = p.entry;
+      document.getElementById("exit").value = p.exit;
+      // Auto mode: use mode-specific σ multipliers and max_std
+      if (name === "auto") {
+        if (mode === "single") {
+          // Single-exchange: spread is ratio of 2 different assets → wider, needs lower σ
+          document.getElementById("entry_mult").value = 2.0;
+          document.getElementById("exit_mult").value = 0.7;
+          document.getElementById("max_std").value = 1.0;  // single-exchange std is much higher
+        } else {
+          // Cross-exchange: spread is same pair on 2 exchanges → tight, needs higher σ
+          document.getElementById("entry_mult").value = 6.0;
+          document.getElementById("exit_mult").value = 2.0;
+          document.getElementById("max_std").value = 0.1;
+        }
+      } else {
+        document.getElementById("max_std").value = p.max_std;
+      }
+      document.getElementById("margin").value = p.margin;
+      document.getElementById("leverage").value = p.leverage;
+      document.getElementById("execution").value = p.execution;
+      document.getElementById("fee_multiple").value = p.fee_multiple;
+      if (p.slippage != null) document.getElementById("slippage").value = p.slippage;
+      // Show/hide std multiplier inputs for auto mode
+      const autoControls = document.getElementById("auto-std-controls");
+      if (autoControls) autoControls.style.display = (name === "auto") ? "flex" : "none";
+      // In auto mode, disable and grey out the fixed Entry/Exit inputs (not used)
+      const entryInput = document.getElementById("entry");
+      const exitInput = document.getElementById("exit");
+      const isAuto = (name === "auto");
+      entryInput.disabled = isAuto;
+      exitInput.disabled = isAuto;
+      entryInput.style.opacity = isAuto ? 0.4 : 1;
+      exitInput.style.opacity = isAuto ? 0.4 : 1;
+      entryInput.title = isAuto ? "Auto mode: threshold = N × std per pair (not used)" : "";
+      exitInput.title = isAuto ? "Auto mode: threshold = N × std per pair (not used)" : "";
+      validateThresholds();
+    }
+
+    function validateThresholds() {
+      const preset = document.getElementById("preset").value;
+      const entryInput = document.getElementById("entry");
+      const exitInput = document.getElementById("exit");
+      if (preset === "auto" || entryInput.disabled || exitInput.disabled) {
+        entryInput.classList.remove("flash-red");
+        exitInput.classList.remove("flash-red");
+        return;
+      }
+      const entry = parseFloat(entryInput.value) || 0;
+      const exit = parseFloat(exitInput.value) || 0;
+      if (entry <= exit) {
+        entryInput.classList.add("flash-red");
+        exitInput.classList.add("flash-red");
+      } else {
+        entryInput.classList.remove("flash-red");
+        exitInput.classList.remove("flash-red");
+      }
+    }
+
+    function syncFees() {
+      // No-op: execution dropdown drives both entry and exit fee in runResearch
+    }
+
+    function toggleMode() {
+      const mode = document.getElementById("mode").value;
+      document.getElementById("cross-controls").style.display = mode === "cross" ? "flex" : "none";
+      document.getElementById("single-controls").style.display = mode === "single" ? "flex" : "none";
+      // Re-apply preset to update σ multipliers and max_std for the new mode
+      applyPreset();
+    }
+
+    // ── Asset registry loaded from API ──
+    let allAssets = [];
+    let selectedCoins = new Set(["BTC", "ETH", "HYPE", "SOL"]);
+    let crossAssets = new Set(["BTC", "HYPE"]);
+    let modalContext = null; // 'cross', 'multi', or 'A'/'B' (legacy)
+    let modalCategory = "all";
+    let modalSearch = "";
+
+    async function loadAssets() {
+      try {
+        const res = await fetch("/assets");
+        const data = await res.json();
+        if (data.ok) allAssets = data.assets;
+      } catch (e) { console.error("Failed to load assets:", e); }
+    }
+
+    async function loadExchanges() {
+      try {
+        const res = await fetch("/exchanges");
+        const data = await res.json();
+        if (data.ok && data.exchanges) {
+          const sel = document.getElementById("single_exchange");
+          sel.innerHTML = "";
+          data.exchanges.forEach((ex, i) => sel.appendChild(new Option(ex, ex, i === 0, i === 0)));
+        }
+      } catch (e) { console.error("Failed to load exchanges:", e); }
+    }
+
+    function getModalAssets() {
+      let assets;
+      if (modalContext === "multi") {
+        const exchange = document.getElementById("single_exchange").value;
+        assets = allAssets.filter(a => a.exchanges.includes(exchange));
+      } else {
+        // cross — only assets on 2+ exchanges
+        assets = allAssets.filter(a => a.exchanges.length >= 2);
+      }
+      if (modalCategory !== "all") assets = assets.filter(a => a.category === modalCategory);
+      if (modalSearch) {
+        const q = modalSearch.toUpperCase();
+        assets = assets.filter(a => a.symbol.includes(q) || a.name.toUpperCase().includes(q));
+      }
+      return assets;
+    }
+
+    function catClass(cat) {
+      return { crypto: "cat-crypto", stock: "cat-stock", commodity: "cat-commodity",
+               forex: "cat-forex", index: "cat-index", etf: "cat-etf", preipo: "cat-preipo" }[cat] || "";
+    }
+
+    function exchShort(exchanges) {
+      const map = { Hyperliquid: "Hype", Paradex: "Para", GRVT: "GRVT", Aevo: "Aevo", Asterdex: "Aste", Binance: "Bina", Variational: "Vari", "Interactive Brokers": "IBKR" };
+      return exchanges.map(e => map[e] || e.substring(0, 4)).join(" · ");
+    }
+
+    function openCrossAssetPicker() {
+      modalContext = "cross";
+      modalCategory = "all";
+      modalSearch = "";
+      renderModal("Select Assets (pick 2+)", true, null);
+    }
+
+    function openMultiAssetPicker() {
+      modalContext = "multi";
+      modalCategory = "all";
+      modalSearch = "";
+      renderModal("Select Assets", true, null);
+    }
+
+    function onSingleExchangeChange() {
+      selectedCoins.clear();
+      updateMultiDisplay();
+    }
+
+    function renderModal(title, multi, currentSym) {
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.id = "asset-modal";
+      overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+
+      overlay.innerHTML = `
+        <div class="modal-box">
+          <div class="modal-header">
+            <h2>${title}</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+          </div>
+          <div class="modal-search">
+            <input type="text" id="modal_search_input" placeholder="Search by symbol or name..." value="${modalSearch}" autocomplete="off">
+          </div>
+          <div class="modal-filters">
+            <button class="cat-btn ${modalCategory==='all'?'active':''}" onclick="setModalCat('all')">All</button>
+            <button class="cat-btn ${modalCategory==='crypto'?'active':''}" onclick="setModalCat('crypto')">Crypto</button>
+            <button class="cat-btn ${modalCategory==='stock'?'active':''}" onclick="setModalCat('stock')">Stocks</button>
+            <button class="cat-btn ${modalCategory==='commodity'?'active':''}" onclick="setModalCat('commodity')">Commodities</button>
+            <button class="cat-btn ${modalCategory==='forex'?'active':''}" onclick="setModalCat('forex')">Forex</button>
+            <button class="cat-btn ${modalCategory==='index'?'active':''}" onclick="setModalCat('index')">Indices</button>
+            <button class="cat-btn ${modalCategory==='etf'?'active':''}" onclick="setModalCat('etf')">ETFs</button>
+            <button class="cat-btn ${modalCategory==='preipo'?'active':''}" onclick="setModalCat('preipo')">Pre-IPO</button>
+            ${multi ? '<button class="cat-btn-secondary" onclick="modalSelectAll()">Select All</button><button class="cat-btn-secondary" onclick="modalClearAll()">Clear All</button>' : ''}
+          </div>
+          <div class="modal-body" id="modal_body"></div>
+          <div class="modal-footer">
+            <span class="info" id="modal_info"></span>
+            <button class="btn" onclick="closeModal()">Done</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      const searchInput = document.getElementById("modal_search_input");
+      searchInput.addEventListener("input", () => { modalSearch = searchInput.value; renderModalBody(multi, currentSym); });
+      searchInput.focus();
+      renderModalBody(multi, currentSym);
+    }
+
+    function setModalCat(cat) {
+      modalCategory = cat;
+      document.querySelectorAll(".modal-filters .cat-btn").forEach(b => {
+        b.classList.toggle("active", b.textContent === cat || (cat === "all" && b.textContent === "All"));
+      });
+      const multi = modalContext === "multi" || modalContext === "cross";
+      renderModalBody(multi, null);
+    }
+
+    function renderModalBody(multi, currentSym) {
+      const body = document.getElementById("modal_body");
+      const assets = getModalAssets();
+      const info = document.getElementById("modal_info");
+      const activeSet = modalContext === "cross" ? crossAssets : selectedCoins;
+
+      if (!assets.length) {
+        body.innerHTML = "<div style='padding:20px;text-align:center;color:#64748b;'>No assets found</div>";
+        info.textContent = "0 assets";
+        return;
+      }
+
+      body.innerHTML = `<div class="asset-grid">${assets.map(a => {
+        const isSelected = multi ? activeSet.has(a.symbol) : (a.symbol === currentSym);
+        return `<div class="asset-card ${isSelected ? 'selected' : ''}" data-sym="${a.symbol}">
+          <div class="sym">
+            <b>${a.symbol}</b>
+            <span class="cat-tag ${catClass(a.category)}">${a.category}</span>
+          </div>
+          <div class="name">${a.name}</div>
+          <div class="exchs">${exchShort(a.exchanges)}</div>
+        </div>`;
+      }).join("")}</div>`;
+
+      info.textContent = `${assets.length} assets${multi ? ` · ${activeSet.size} selected` : ""}`;
+
+      body.querySelectorAll(".asset-card").forEach(card => {
+        card.onclick = () => {
+          const sym = card.dataset.sym;
+          if (multi) {
+            if (activeSet.has(sym)) activeSet.delete(sym);
+            else activeSet.add(sym);
+            card.classList.toggle("selected");
+            if (modalContext === "cross") updateCrossDisplay();
+            else updateMultiDisplay();
+            info.textContent = `${assets.length} assets · ${activeSet.size} selected`;
+          } else {
+            const asset = allAssets.find(a => a.symbol === sym);
+            const slot = modalContext.toLowerCase();
+            document.getElementById(`coin_${slot}_display`).textContent = sym;
+            document.getElementById(`coin_${slot}_name`).textContent = asset ? asset.name : sym;
+            closeModal();
+          }
+        };
+      });
+    }
+
+    function updateCrossDisplay() {
+      const count = crossAssets.size;
+      const syms = Array.from(crossAssets);
+      document.getElementById("cross_pick_count").textContent = `${count} selected`;
+      document.getElementById("cross_pick_display").textContent = count === 0 ? "Select assets..." :
+        count <= 4 ? syms.join(", ") : `${count} assets`;
+    }
+
+    function updateMultiDisplay() {
+      const count = selectedCoins.size;
+      const syms = Array.from(selectedCoins);
+      document.getElementById("selected-count").textContent = `${count} selected`;
+      document.getElementById("multi_pick_display").textContent = count === 0 ? "Select assets..." :
+        count <= 4 ? syms.join(", ") : `${count} assets`;
+    }
+
+    function modalSelectAll() {
+      const activeSet = modalContext === "cross" ? crossAssets : selectedCoins;
+      getModalAssets().forEach(a => activeSet.add(a.symbol));
+      renderModalBody(true, null);
+      if (modalContext === "cross") updateCrossDisplay();
+      else updateMultiDisplay();
+    }
+
+    function modalClearAll() {
+      const activeSet = modalContext === "cross" ? crossAssets : selectedCoins;
+      activeSet.clear();
+      renderModalBody(true, null);
+      if (modalContext === "cross") updateCrossDisplay();
+      else updateMultiDisplay();
+    }
+
+    function closeModal() {
+      const m = document.getElementById("asset-modal");
+      if (m) m.remove();
+    }
+
+    function getSelectedCoins() {
+      return Array.from(selectedCoins).join(",");
+    }
+
+    // Load assets and exchanges on page load
+    Promise.all([loadAssets(), loadExchanges()]).then(() => {
+      updateCrossDisplay();
+      // Apply default preset (Auto)
+      applyPreset();
+    });
+
+    function getNotional() {
+      const margin = parseFloat(document.getElementById("margin").value) || 100;
+      const leverage = parseFloat(document.getElementById("leverage").value) || 1;
+      return margin * leverage;
+    }
+
+    function stopResearch() {
+      if (researchAbort) researchAbort.abort();
+      researchAbort = null;
+      if (researchTimer) { clearInterval(researchTimer); researchTimer = null; }
+      document.getElementById("stop-btn").style.display = "none";
+      document.getElementById("status").textContent = "Stopped";
+      // Also stop auto-refresh
+      const autoCb = document.getElementById("auto-refresh");
+      if (autoCb.checked) autoCb.click();
+    }
+
+    async function runResearch() {
+      if (researchAbort) researchAbort.abort();
+      researchAbort = new AbortController();
+      const status = document.getElementById("status");
+      status.textContent = "Running…";
+      status.style.color = "#60a5fa";
+      const startTime = Date.now();
+      researchTimer = setInterval(() => {
+        status.textContent = "Running… (" + Math.round((Date.now() - startTime) / 1000) + "s)";
+      }, 1000);
+      document.getElementById("stop-btn").style.display = "";
+      const hours = document.getElementById("hours").value;
+      const entry = document.getElementById("entry").value;
+      const exit = document.getElementById("exit").value;
+      const notional = getNotional();
+      const exec = document.getElementById("execution").value;
+      const feeMultiple = document.getElementById("fee_multiple").value;
+      const slippage = document.getElementById("slippage").value;
+      const maxStd = document.getElementById("max_std").value;
+      const mode = document.getElementById("mode").value;
+      const preset = document.getElementById("preset").value;
+      // Auto std-based mode: pass multipliers instead of fixed entry/exit
+      let autoParams = "";
+      if (preset === "auto") {
+        const entryMult = parseFloat(document.getElementById("entry_mult").value) || 3.0;
+        const exitMult = parseFloat(document.getElementById("exit_mult").value) || 1.0;
+        autoParams = `&entry_mult=${entryMult}&exit_mult=${exitMult}`;
+      }
+      let modeParams = "";
+      try {
+        if (mode === "cross") {
+          if (crossAssets.size < 2) {
+            status.textContent = "⚠ Select at least 2 assets for cross-exchange mode. You have " + crossAssets.size + ".";
+            status.style.color = "#f87171";
+            return;
+          }
+          const coins = Array.from(crossAssets).join(",");
+          modeParams = `&mode=cross&coins=${coins}`;
+        } else {
+          if (selectedCoins.size < 2) {
+            status.textContent = "⚠ Select at least 2 assets for single-exchange mode. You have " + selectedCoins.size + ". Single-exchange compares pairs of assets (e.g. BTC/ETH), so you need 2+.";
+            status.style.color = "#f87171";
+            return;
+          }
+          const exchange = document.getElementById("single_exchange").value;
+          const coins = getSelectedCoins();
+          modeParams = `&mode=single&exchange=${exchange}&coins=${coins}`;
+        }
+        const res = await fetch(`/research?hours=${hours}&entry=${entry}&exit=${exit}&notional=${notional}&entry_fee=${exec}&exit_fee=${exec}&fee_multiple=${feeMultiple}&slippage=${slippage}&max_std=${maxStd}${autoParams}${modeParams}`, { signal: researchAbort.signal });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "unknown error");
+        researchData = data;
+        const entryVal = parseFloat(entry);
+        const exitVal = parseFloat(exit);
+        // In auto mode, entry/exit are 0 — real thresholds come from σ multipliers
+        const isAutoMode = document.getElementById("preset").value === "auto";
+        if (!isAutoMode && entryVal <= exitVal) {
+          status.textContent = `Warning: Entry (${entry}%) should be > Exit (${exit}%) for mean-reversion. Results will be unrealistic.`;
+          status.style.color = "#fbbf24";
+        } else {
+          status.style.color = "";
+          const span = data.summary.data_span_hours || 0;
+          const rows = data.summary.total_rows || 0;
+          const pairCount = data.results.length;
+          if (isAutoMode) {
+            const em = document.getElementById("entry_mult").value;
+            const xm = document.getElementById("exit_mult").value;
+            status.textContent = `Loaded ${pairCount} pairs | ${span}h data (${rows.toLocaleString()} ticks) | Auto: ${em}σ entry / ${xm}σ exit`;
+          } else {
+            status.textContent = `Loaded ${pairCount} pairs | ${span}h of data (${rows.toLocaleString()} ticks) from ${hours}h window`;
+          }
+        }
+        renderSummary(data.summary);
+        renderTable(data.results);
+        if (data.results.length === 0) {
+          // Show diagnostic info about why no results
+          const diag = data.coin_diagnostics || {};
+          const diagCoins = Object.keys(diag);
+          if (diagCoins.length > 0) {
+            const noData = diagCoins.filter(c => diag[c].points === 0);
+            const hasData = diagCoins.filter(c => diag[c].points > 0);
+            let msg = "No pairs found. ";
+            if (noData.length > 0) {
+              msg += `No data for: ${noData.join(", ")}. `;
+            }
+            if (hasData.length >= 2) {
+              // Check time overlap
+              const overlaps = hasData.filter(c => {
+                const d = diag[c];
+                return d.start && d.end;
+              });
+              if (overlaps.length >= 2) {
+                const latestStart = Math.max(...overlaps.map(c => diag[c].start));
+                const earliestEnd = Math.min(...overlaps.map(c => diag[c].end));
+                if (earliestEnd < latestStart) {
+                  msg += `Data doesn't overlap in time: ${overlaps.map(c => `${c} (${new Date(diag[c].start*1000).toLocaleTimeString()}-${new Date(diag[c].end*1000).toLocaleTimeString()})`).join(", ")}. `;
+                }
+              }
+            }
+            msg += "Try different assets or increase Max Std.";
+            status.textContent = msg;
+          } else {
+            status.textContent = "No pairs found with data. Some assets may not be available on the selected exchange, or the max_std filter is too strict. Try selecting different assets or increasing Max Std.";
+          }
+          status.style.color = "#fbbf24";
+        }
+        if (data.results.length) {
+          // Auto-select the pair with the most excursions (most interesting to view)
+          const best = data.results.slice().sort((a, b) => b.excursions - a.excursions)[0];
+          selectPair(best.pair);
+        }
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          status.textContent = "Error: " + e.message;
+        }
+      } finally {
+        if (researchTimer) { clearInterval(researchTimer); researchTimer = null; }
+        document.getElementById("stop-btn").style.display = "none";
+        researchAbort = null;
+      }
+    }
+
+    function autoPickBest() {
+      if (!researchData.results || !researchData.results.length) {
+        document.getElementById("status").textContent = "Run research first, then click Best Pair.";
+        return;
+      }
+      // Filter: min 10 excursions, positive total net, then sort by Sharpe
+      const candidates = researchData.results
+        .filter(r => r.excursions >= 10 && r.total_net_pnl > 0)
+        .sort((a, b) => b.net_sharpe - a.net_sharpe);
+      if (!candidates.length) {
+        // Fallback: just pick highest total net with min 5 excursions
+        const fallback = researchData.results
+          .filter(r => r.excursions >= 5)
+          .sort((a, b) => b.total_net_pnl - a.total_net_pnl);
+        if (!fallback.length) {
+          document.getElementById("status").textContent = "No pairs with enough trades found. Try lowering Min Trades or adjusting Entry/Exit.";
+          return;
+        }
+        candidates.push(fallback[0]);
+      }
+      const best = candidates[0];
+      const mode = document.getElementById("mode").value;
+      // Build URL for charts page
+      let url;
+      if (mode === "cross") {
+        // best.a and best.b are exchange names, best.coin_a and best.coin_b are coins
+        const ca = best.coin_a || "BTC";
+        const cb = best.coin_b || "HYPE";
+        url = `/charts.html?ex_a=${encodeURIComponent(best.a)}&ex_b=${encodeURIComponent(best.b)}&coin_a=${encodeURIComponent(ca)}&coin_b=${encodeURIComponent(cb)}`;
+      } else {
+        // Single-exchange: best.a and best.b are coin names
+        const exch = document.getElementById("single_exchange").value;
+        url = `/charts.html?exchange=${encodeURIComponent(exch)}&coin_a=${encodeURIComponent(best.a)}&coin_b=${encodeURIComponent(best.b)}`;
+      }
+      document.getElementById("status").textContent = `Best pair: ${best.pair} (Sharpe ${best.net_sharpe.toFixed(2)}, Net $${best.total_net_pnl.toFixed(2)}, ${best.excursions} trades) → opening Charts...`;
+      window.open(url, "_blank");
+    }
+
+    function renderSummary(s) {
+      const root = document.getElementById("summary");
+      const bo = s.best_overall;
+      root.innerHTML = `
+        <div class="summary-card">
+          <h3>Best Overall (Total Net)</h3>
+          <div class="big">${bo ? bo.pair : "—"}</div>
+          <div class="sub ${bo && bo.total_net_pnl >= 0 ? 'ok' : 'bad'}">${bo ? '$' + bo.total_net_pnl.toFixed(4) : ''}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Fastest Median Close</h3>
+          <div class="big">${s.best_close ? s.best_close.pair : "—"}</div>
+          <div class="sub">${s.best_close ? (s.best_close.median_close_seconds != null ? s.best_close.median_close_seconds.toFixed(2) + "s" : "—") : ""}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Highest &le;5s Close Rate</h3>
+          <div class="big">${s.best_5s ? s.best_5s.pair : "—"}</div>
+          <div class="sub">${s.best_5s ? s.best_5s.pct_closed_5s.toFixed(1) + "%" : ""}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Highest Win Rate</h3>
+          <div class="big">${s.best_profitable ? s.best_profitable.pair : "—"}</div>
+          <div class="sub">${s.best_profitable ? s.best_profitable.pct_profitable.toFixed(1) + "%" : ""}</div>
+        </div>
+        <div class="summary-card">
+          <h3>Pairs Analyzed</h3>
+          <div class="big">${s.rows}</div>
+        </div>
+      `;
+    }
+
+    let sortKey = "total_net_pnl";
+    let sortAsc = false;
+
+    function sortTable(key) {
+      if (sortKey === key) sortAsc = !sortAsc;
+      else { sortKey = key; sortAsc = false; }
+      const rows = [...researchData.results];
+      rows.sort((a, b) => {
+        // Handle nested fee breakdown fields
+        const getVal = (r, k) => {
+          if (k === 'fee_entry') return (r.fee_breakdown || {}).entry_fees ?? -Infinity;
+          if (k === 'fee_exit') return (r.fee_breakdown || {}).exit_fees ?? -Infinity;
+          if (k === 'fee_slip') return (r.fee_breakdown || {}).slippage_cost ?? -Infinity;
+          return r[k] != null ? r[k] : -Infinity;
+        };
+        let va = getVal(a, key);
+        let vb = getVal(b, key);
+        return sortAsc ? (va > vb ? 1 : -1) : (va > vb ? -1 : 1);
+      });
+      renderTable(rows);
+    }
+
+    function fmt(n, d = 4) {
+      if (n == null || isNaN(n)) return "—";
+      return (n * 100).toFixed(d) + "%";
+    }
+    function fmtUSD(n) {
+      if (n == null || isNaN(n)) return "—";
+      return "$" + n.toFixed(4);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.querySelector("#results-table tbody");
+      tbody.innerHTML = "";
+      // Apply min trades filter
+      const minTrades = parseInt(document.getElementById("min_trades").value) || 0;
+      if (minTrades > 0) {
+        rows = rows.filter(r => r.excursions >= minTrades);
+      }
+      const hours = document.getElementById("hours").value;
+      const entry = document.getElementById("entry").value;
+      const exit = document.getElementById("exit").value;
+      const notional = getNotional();
+      const exec = document.getElementById("execution").value;
+      const feeMultiple = document.getElementById("fee_multiple").value;
+      const bestPair = researchData.summary && researchData.summary.best_overall
+        ? researchData.summary.best_overall.pair : null;
+      const bestExcursions = researchData.summary && researchData.summary.best_overall
+        ? researchData.summary.best_overall.excursions : 0;
+      const bestNet = researchData.summary && researchData.summary.best_overall
+        ? researchData.summary.best_overall.total_net_pnl : 0;
+      // Only recommend if statistically meaningful (>=20 trades) and profitable
+      const showRec = bestExcursions >= 20 && bestNet > 0;
+      for (const r of rows) {
+        const tr = document.createElement("tr");
+        if (r.pair === selectedPair) tr.classList.add("selected");
+        if (r.total_net_pnl > 0 && r.pct_profitable >= 60) tr.classList.add("row-good");
+        else if (r.total_net_pnl < 0) tr.classList.add("row-bad");
+        const prof = r.pct_profitable != null ? r.pct_profitable : 0;
+        const netClass = r.avg_net >= 0 ? "ok" : "bad";
+        const totalClass = r.total_net_pnl >= 0 ? "ok" : "bad";
+        const winClass = prof >= 60 ? "ok" : (prof < 30 ? "bad" : "");
+        const sharpeClass = r.net_sharpe >= 1 ? "ok" : (r.net_sharpe < 0 ? "bad" : "");
+        const roiClass = r.return_on_margin >= 0 ? "ok" : "bad";
+        const ddClass = r.max_drawdown > 0 ? "bad" : "";
+        const recBadge = (showRec && r.pair === bestPair) ? ' <span class="badge badge-rec">Recommended</span>' : '';
+        const currentMode = document.getElementById("mode").value;
+        const slippageVal = document.getElementById("slippage").value;
+        const maxStdVal = document.getElementById("max_std").value;
+        const presetVal = document.getElementById("preset").value;
+        const autoParams = presetVal === "auto"
+          ? `&entry_mult=${document.getElementById("entry_mult").value}&exit_mult=${document.getElementById("exit_mult").value}`
+          : "";
+        let paperLink;
+        if (currentMode === "single") {
+          // Single-exchange: r.a/r.b are coin names
+          const exch = document.getElementById("single_exchange").value;
+          paperLink = `<a class="action-link" href="subaccount_paper.html?exchange=${exch}&coin_a=${r.a}&coin_b=${r.b}&hours=${hours}&entry=${entry}&exit=${exit}&notional=${notional}&entry_fee=${exec}&exit_fee=${exec}&fee_multiple=${feeMultiple}&slippage=${slippageVal}&max_std=${maxStdVal}${autoParams}&mode=single" onclick="event.stopPropagation()">Paper trade</a>`;
+        } else {
+          // Cross-exchange: r.a/r.b are exchange names, coins from crossAssets
+          const crossCoins = Array.from(crossAssets);
+          const ca = crossCoins[0] || "BTC";
+          const cb = crossCoins[1] || "HYPE";
+          paperLink = `<a class="action-link" href="paper.html?a=${r.a}&b=${r.b}&hours=${hours}&entry=${entry}&exit=${exit}&notional=${notional}&entry_fee=${exec}&exit_fee=${exec}&fee_multiple=${feeMultiple}&slippage=${slippageVal}&max_std=${maxStdVal}${autoParams}&mode=cross&coin_a=${ca}&coin_b=${cb}" onclick="event.stopPropagation()">Paper trade</a>`;
+        }
+        tr.innerHTML = `
+          <td>${r.pair}${recBadge}</td>
+          <td>${r.coin_a ? r.coin_a + " / " + r.coin_b : (r.a && r.b && currentMode === "single" ? r.a + " / " + r.b : "—")}</td>
+          <td class="${r.current >= 0 ? 'ok' : 'warn'}">${fmt(r.current)}</td>
+          <td>${fmt(r.std)}</td>
+          <td>${r.entry_threshold != null ? fmt(r.entry_threshold) : "—"}</td>
+          <td>${r.exit_threshold != null ? fmt(r.exit_threshold) : "—"}</td>
+          <td>${r.half_life != null ? r.half_life.toFixed(1) : "—"}</td>
+          <td>${r.excursions}</td>
+          <td>${r.median_close_seconds != null ? r.median_close_seconds.toFixed(2) + "s" : "—"}</td>
+          <td class="ok">${r.pct_closed_5s.toFixed(1)}%</td>
+          <td class="${winClass}">${prof.toFixed(1)}%</td>
+          <td class="${netClass}">${fmtUSD(r.avg_net)}</td>
+          <td class="${totalClass}">${fmtUSD(r.total_net_pnl)}</td>
+          <td class="${roiClass}">${r.return_on_margin.toFixed(2)}%</td>
+          <td class="${ddClass}">${fmtUSD(r.max_drawdown)}</td>
+          <td class="${sharpeClass}">${r.net_sharpe.toFixed(2)}</td>
+          <td>${(r.trade_count_a || 0).toLocaleString()}</td>
+          <td>${(r.trade_count_b || 0).toLocaleString()}</td>
+          <td>${fmtUSD((r.fee_breakdown || {}).entry_fees || 0)}</td>
+          <td>${fmtUSD((r.fee_breakdown || {}).exit_fees || 0)}</td>
+          <td>${fmtUSD((r.fee_breakdown || {}).slippage_cost || 0)}</td>
+          <td>${fmtUSD(r.total_fund_cost || 0)}</td>
+          <td>${paperLink}</td>
+        `;
+        tr.onclick = () => selectPair(r.pair);
+        tbody.appendChild(tr);
+      }
+
+      // Populate pair selector dropdown
+      const sel = document.getElementById("pair_selector");
+      sel.innerHTML = rows.map(r => `<option value="${r.pair}">${r.pair}</option>`).join("");
+      if (selectedPair && rows.find(r => r.pair === selectedPair)) {
+        sel.value = selectedPair;
+      } else if (rows.length) {
+        sel.value = rows[0].pair;
+      }
+    }
+
+    function selectPair(pair) {
+      selectedPair = pair;
+      const r = researchData.results.find(x => x.pair === pair);
+      if (!r) return;
+      const sel = document.getElementById("pair_selector");
+      if (sel) sel.value = pair;
+      document.getElementById("dist-pair").textContent = pair;
+      document.getElementById("close-pair").textContent = pair;
+      document.getElementById("pnl-dist-pair").textContent = pair;
+      document.getElementById("spread-ts-pair").textContent = pair;
+      document.getElementById("cum-pnl-pair").textContent = pair;
+
+      // Percentiles
+      const p = r.percentiles;
+      pctChart.data.datasets[0].data = [p.p5, p.p25, p.p50, p.p75, p.p95].map(v => v * 100);
+      pctChart.update();
+
+      // Close buckets
+      const b = r.close_buckets;
+      closeChart.data.datasets[0].data = [b["0-5s"], b["5-10s"], b["10-30s"], b["30-60s"], b["60-300s"], b[">300s"], b["open"]];
+      closeChart.update();
+
+      // P&L distribution histogram
+      const nv = r.net_values || [];
+      if (nv.length > 0) {
+        const min = Math.min(...nv);
+        const max = Math.max(...nv);
+        if (nv.length === 1 || min === max) {
+          // Single value or all same — show one bar
+          pnlDistChart.data.labels = [`$${nv[0].toFixed(4)}`];
+          pnlDistChart.data.datasets[0].data = [1];
+          pnlDistChart.data.datasets[0].backgroundColor = [nv[0] >= 0 ? "#34d399" : "#f87171"];
+        } else {
+          const nBins = Math.min(15, Math.max(5, Math.ceil(Math.sqrt(nv.length))));
+          const binSize = (max - min) / nBins || 0.001;
+          const bins = new Array(nBins).fill(0);
+          const labels = [];
+          for (let i = 0; i < nBins; i++) {
+            const lo = min + i * binSize;
+            const hi = lo + binSize;
+            labels.push(`$${lo.toFixed(3)}-$${hi.toFixed(3)}`);
+          }
+          for (const v of nv) {
+            let idx = Math.floor((v - min) / binSize);
+            if (idx >= nBins) idx = nBins - 1;
+            if (idx < 0) idx = 0;
+            bins[idx]++;
+          }
+          const colors = labels.map((_, i) => {
+            const mid = min + (i + 0.5) * binSize;
+            return mid >= 0 ? "#34d399" : "#f87171";
+          });
+          pnlDistChart.data.labels = labels;
+          pnlDistChart.data.datasets[0].data = bins;
+          pnlDistChart.data.datasets[0].backgroundColor = colors;
+        }
+      } else {
+        pnlDistChart.data.labels = ["no closed trades"];
+        pnlDistChart.data.datasets[0].data = [0];
+        pnlDistChart.data.datasets[0].backgroundColor = ["#94a3b8"];
+      }
+      pnlDistChart.update();
+
+      // Spread time series with rolling mean, bands, entry/exit lines, trade markers
+      const ss = r.spread_series || [];
+      const fd = r.fund_diff_series || [];
+      const ts2 = r.true_spread_series || [];
+      // Use per-pair thresholds if available (auto mode), else fall back to inputs
+      const entryLog = r.entry_threshold != null ? r.entry_threshold : parseFloat(document.getElementById("entry").value) / 100;
+      const exitLog = r.exit_threshold != null ? r.exit_threshold : parseFloat(document.getElementById("exit").value) / 100;
+
+      // Dataset indices: 0=spread, 1=rolling mean, 2=+2σ, 3=-2σ, 4=entry, 5=exit, 6=funding diff, 7=true spread, 8=entry markers, 9=exit markers
+      spreadTsChart.data.datasets[0].data = ss.map(([t, v]) => ({ x: t, y: v }));
+
+      // Compute rolling mean and ±2σ bands (window = 60 points or 10% of data, whichever is larger)
+      const winSize = Math.max(20, Math.floor(ss.length * 0.1));
+      const rollingMean = [];
+      const upperBand = [];
+      const lowerBand = [];
+      for (let i = 0; i < ss.length; i++) {
+        const start = Math.max(0, i - winSize + 1);
+        const window = ss.slice(start, i + 1).map(s => s[1]);
+        const mean = window.reduce((a, b) => a + b, 0) / window.length;
+        const variance = window.reduce((a, b) => a + (b - mean) ** 2, 0) / window.length;
+        const std = Math.sqrt(variance);
+        rollingMean.push({ x: ss[i][0], y: mean });
+        upperBand.push({ x: ss[i][0], y: mean + 2 * std });
+        lowerBand.push({ x: ss[i][0], y: mean - 2 * std });
+      }
+      spreadTsChart.data.datasets[1].data = rollingMean;
+      spreadTsChart.data.datasets[2].data = upperBand;
+      spreadTsChart.data.datasets[3].data = lowerBand;
+
+      spreadTsChart.data.datasets[6].data = fd.map(([t, v]) => ({ x: t, y: v }));
+      spreadTsChart.data.datasets[7].data = ts2.map(([t, v]) => ({ x: t, y: v }));
+      // Entry/exit trade markers from excursion_details
+      const details = r.excursion_details || [];
+      const entryMarkers = details.filter(d => d.entry_ts).map(d => ({ x: d.entry_ts, y: d.entry_spread }));
+      const exitMarkers = details.filter(d => d.closed && d.exit_ts).map(d => ({ x: d.exit_ts, y: d.exit_spread }));
+      spreadTsChart.data.datasets[8].data = entryMarkers;
+      spreadTsChart.data.datasets[9].data = exitMarkers;
+      if (ss.length) {
+        spreadTsChart.data.datasets[4].data = [{ x: ss[0][0], y: entryLog }, { x: ss[ss.length-1][0], y: entryLog }];
+        spreadTsChart.data.datasets[5].data = [{ x: ss[0][0], y: -exitLog }, { x: ss[ss.length-1][0], y: -exitLog }, { x: ss[0][0], y: exitLog }, { x: ss[ss.length-1][0], y: exitLog }];
+        const allVals = [...ss.map(s => s[1]), ...upperBand, ...lowerBand, ...fd.map(s => s[1]), ...ts2.map(s => s[1])];
+        const ssMin = Math.min(...allVals.map(v => v.y || v));
+        const ssMax = Math.max(...allVals.map(v => v.y || v));
+        spreadTsChart.options.scales.y.suggestedMin = Math.min(ssMin, -entryLog) * 1.1;
+        spreadTsChart.options.scales.y.suggestedMax = Math.max(ssMax, entryLog) * 1.1;
+      } else {
+        spreadTsChart.data.datasets[4].data = [];
+        spreadTsChart.data.datasets[5].data = [];
+      }
+      // Reset zoom when switching pairs
+      spreadTsChart.resetZoom();
+      spreadTsChart.update();
+
+      // Per-trade table
+      renderTradeTable(details);
+
+      // Cumulative P&L
+      const cp = r.cum_pnl || [];
+      if (cp.length > 0) {
+        cumPnlChart.data.datasets[0].data = cp.map((v, i) => ({ x: i, y: v }));
+        cumPnlChart.data.datasets[0].pointRadius = cp.length <= 10 ? 5 : 0;
+        cumPnlChart.data.datasets[0].pointBackgroundColor = "#38bdf8";
+        const cpMin = Math.min(...cp), cpMax = Math.max(...cp);
+        cumPnlChart.options.scales.y.suggestedMin = Math.min(0, cpMin) * 1.15;
+        cumPnlChart.options.scales.y.suggestedMax = Math.max(0, cpMax) * 1.15;
+      } else {
+        cumPnlChart.data.datasets[0].data = [{ x: 0, y: 0 }];
+        cumPnlChart.data.datasets[0].pointRadius = 0;
+        cumPnlChart.options.scales.y.suggestedMin = -1;
+        cumPnlChart.options.scales.y.suggestedMax = 1;
+      }
+      cumPnlChart.update();
+
+      // Trade volume by exchange
+      document.getElementById("vol-pair").textContent = pair;
+      const mode = document.getElementById("mode").value;
+      if (mode === "single") {
+        const exch = document.getElementById("single_exchange").value;
+        volChart.data.labels = [exch];
+        volChart.data.datasets[0].data = [r.trade_count_a || 0];
+        volChart.data.datasets[1].data = [r.trade_vol_a || 0];
+      } else {
+        volChart.data.labels = [r.a, r.b];
+        volChart.data.datasets[0].data = [r.trade_count_a || 0, r.trade_count_b || 0];
+        volChart.data.datasets[1].data = [r.trade_vol_a || 0, r.trade_vol_b || 0];
+      }
+      volChart.update();
+
+      renderTable(researchData.results);
+    }
+
+    let tradeSortKey = null;
+    let tradeSortAsc = false;
+    let tradeLogData = [];
+
+    function sortTradeLog(key) {
+      if (tradeSortKey === key) tradeSortAsc = !tradeSortAsc;
+      else { tradeSortKey = key; tradeSortAsc = false; }
+      renderTradeTable(tradeLogData);
+    }
+
+    function renderTradeTable(details) {
+      const tbody = document.querySelector("#trade-table tbody");
+      const pairLabel = document.getElementById("trade-log-pair");
+      const legend = document.getElementById("trade-log-legend");
+      tbody.innerHTML = "";
+      // Update column headers based on mode
+      const mode = document.getElementById("mode").value;
+      const r = researchData.results.find(x => x.pair === selectedPair);
+      const fmtPx = (v) => v != null ? "$" + (v < 1 ? v.toFixed(6) : v.toFixed(2)) : "—";
+      if (r && mode === "cross") {
+        // Cross-exchange: A/B are exchange names, show ask coin_a / bid coin_b
+        const parts = r.pair.split(" vs ");
+        const exA = parts[0] || "A", exB = parts[1] || "B";
+        const ca = r.coin_a || "?", cb = r.coin_b || "?";
+        document.getElementById("th-entry-a").textContent = `Entry ${exA} (${ca}/${cb})`;
+        document.getElementById("th-entry-b").textContent = `Entry ${exB} (${ca}/${cb})`;
+        document.getElementById("th-exit-a").textContent = `Exit ${exA} (${ca}/${cb})`;
+        document.getElementById("th-exit-b").textContent = `Exit ${exB} (${ca}/${cb})`;
+        document.getElementById("th-fee-a").textContent = `Fee ${exA}`;
+        document.getElementById("th-fee-b").textContent = `Fee ${exB}`;
+        document.getElementById("th-slip-a").textContent = `Slip ${exA}`;
+        document.getElementById("th-slip-b").textContent = `Slip ${exB}`;
+        document.getElementById("th-fund-a").textContent = `Fund ${exA}`;
+        document.getElementById("th-fund-b").textContent = `Fund ${exB}`;
+        legend.innerHTML = `Each price cell: ask(${ca}) / bid(${cb}) on that exchange. Spread = log(ask/bid)<sub>${exA}</sub> − log(ask/bid)<sub>${exB}</sub>. Net = Gross − Fee A − Fee B − Slip A − Slip B − Fund A − Fund B.`;
+      } else if (r && mode === "single") {
+        // Single-exchange: A/B are coin names
+        const parts = r.pair.split(" / ");
+        document.getElementById("th-entry-a").textContent = "Entry " + (parts[0] || "A");
+        document.getElementById("th-entry-b").textContent = "Entry " + (parts[1] || "B");
+        document.getElementById("th-exit-a").textContent = "Exit " + (parts[0] || "A");
+        document.getElementById("th-exit-b").textContent = "Exit " + (parts[1] || "B");
+        legend.innerHTML = `Prices: mark/mid of each coin. Spread = log(A) − log(B), demeaned.`;
+      } else {
+        legend.innerHTML = "";
+      }
+      // Update sort indicators on headers
+      document.querySelectorAll("#trade-table th").forEach(th => {
+        th.classList.remove("sort-asc", "sort-desc");
+      });
+      if (tradeSortKey) {
+        const thMap = { idx: 0, side: 1, entry_ts: 2, exit_ts: 3, duration: 4,
+                        entry_px_a: 5, entry_px_b: 6, exit_px_a: 7, exit_px_b: 8,
+                        entry_spread: 9, exit_spread: 10, max_spread: 11,
+                        gross: 12, fee_a_total: 13, fee_b_total: 14,
+                        slippage_a: 15, slippage_b: 16, fund_a: 17, fund_b: 18, net: 19 };
+        const idx = thMap[tradeSortKey];
+        if (idx != null) {
+          const th = document.querySelectorAll("#trade-table th")[idx];
+          if (th) th.classList.add(tradeSortAsc ? "sort-asc" : "sort-desc");
+        }
+      }
+      if (!details || !details.length) {
+        tradeLogData = [];
+        pairLabel.textContent = "—";
+        const entryPct = parseFloat(document.getElementById("entry").value) || 0;
+        const stdPct = r ? (r.std * 100).toFixed(4) : "?";
+        tbody.innerHTML = `<tr><td colspan="21" style="text-align:center;color:#64748b;padding:12px;">
+          No trades triggered. Entry threshold (${entryPct}%) is ${r ? (entryPct > r.std * 100 * 3 ? 'much' : '') : ''} larger than spread volatility (std ${stdPct}%).
+          Try lowering Entry to ~${(r ? r.std * 100 * 2 : 0.05).toFixed(3)}% or increasing Hours for more data.
+        </td></tr>`;
+        return;
+      }
+      tradeLogData = details;
+      // Apply sorting
+      const sorted = [...details].map((d, i) => ({ ...d, idx: i + 1 }));
+      if (tradeSortKey) {
+        sorted.sort((a, b) => {
+          let va = a[tradeSortKey], vb = b[tradeSortKey];
+          // For cross-exchange price columns, sort by the ask price (first value)
+          if (va == null && tradeSortKey.startsWith('entry_px_')) {
+            const k = tradeSortKey.replace('px', 'ask');
+            va = a[k]; vb = b[k];
+          }
+          if (va == null && tradeSortKey.startsWith('exit_px_')) {
+            const k = tradeSortKey.replace('px', 'ask');
+            va = a[k]; vb = b[k];
+          }
+          // For fee columns, compute totals
+          if (tradeSortKey === 'fee_a_total') {
+            va = (a.entry_fee_a || 0) + (a.exit_fee_a || 0);
+            vb = (b.entry_fee_a || 0) + (b.exit_fee_a || 0);
+          }
+          if (tradeSortKey === 'fee_b_total') {
+            va = (a.entry_fee_b || 0) + (a.exit_fee_b || 0);
+            vb = (b.entry_fee_b || 0) + (b.exit_fee_b || 0);
+          }
+          if (va == null) va = tradeSortAsc ? Infinity : -Infinity;
+          if (vb == null) vb = tradeSortAsc ? Infinity : -Infinity;
+          if (typeof va === "string" && typeof vb === "string") {
+            return tradeSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+          }
+          return tradeSortAsc ? (va > vb ? 1 : -1) : (va > vb ? -1 : 1);
+        });
+      }
+      pairLabel.textContent = selectedPair || "—";
+      const isCross = mode === "cross";
+      // For cross-exchange: show "ask / bid" compactly in each cell
+      const fmtCrossEntry = (ask, bid) => {
+        if (ask == null && bid == null) return "—";
+        return `${fmtPx(ask)}<span style="color:#64748b"> / </span>${fmtPx(bid)}`;
+      };
+      sorted.forEach((d, i) => {
+        const tr = document.createElement("tr");
+        const netClass = d.net > 0 ? "ok" : (d.net < 0 ? "bad" : "");
+        const sideClass = d.side === "long" ? "ok" : "warn";
+        const entryTime = d.entry_ts ? new Date(d.entry_ts * 1000).toLocaleTimeString() : "—";
+        const exitTime = d.exit_ts ? new Date(d.exit_ts * 1000).toLocaleTimeString() : "—";
+        const durStr = d.duration < 60 ? d.duration.toFixed(1) + "s" :
+                       d.duration < 3600 ? (d.duration / 60).toFixed(1) + "m" :
+                       (d.duration / 3600).toFixed(1) + "h";
+        const status = d.closed ? (d.profitable ? '<span class="ok">closed ✓</span>' : '<span class="bad">closed ✗</span>') : '<span class="warn">open</span>';
+        let entryA, entryB, exitA, exitB;
+        if (isCross) {
+          entryA = fmtCrossEntry(d.entry_ask_a, d.entry_bid_a);
+          entryB = fmtCrossEntry(d.entry_ask_b, d.entry_bid_b);
+          exitA = d.closed ? fmtCrossEntry(d.exit_ask_a, d.exit_bid_a) : "—";
+          exitB = d.closed ? fmtCrossEntry(d.exit_ask_b, d.exit_bid_b) : "—";
+        } else {
+          entryA = fmtPx(d.entry_px_a);
+          entryB = fmtPx(d.entry_px_b);
+          exitA = d.closed ? fmtPx(d.exit_px_a) : "—";
+          exitB = d.closed ? fmtPx(d.exit_px_b) : "—";
+        }
+        tr.innerHTML = `
+          <td>${d.idx}</td>
+          <td class="${sideClass}">${d.side || "—"}</td>
+          <td>${entryTime}</td>
+          <td>${exitTime}</td>
+          <td>${durStr}</td>
+          <td>${entryA}</td>
+          <td>${entryB}</td>
+          <td>${exitA}</td>
+          <td>${exitB}</td>
+          <td>${(d.entry_spread * 100).toFixed(4)}%</td>
+          <td>${d.closed ? (d.exit_spread * 100).toFixed(4) + "%" : "—"}</td>
+          <td>${(d.max_spread * 100).toFixed(4)}%</td>
+          <td>${fmtUSD(d.gross)}</td>
+          <td>${fmtUSD((d.entry_fee_a || 0) + (d.exit_fee_a || 0))}</td>
+          <td>${fmtUSD((d.entry_fee_b || 0) + (d.exit_fee_b || 0))}</td>
+          <td>${fmtUSD(d.slippage_a)}</td>
+          <td>${fmtUSD(d.slippage_b)}</td>
+          <td>${fmtUSD(d.fund_a)}</td>
+          <td>${fmtUSD(d.fund_b)}</td>
+          <td class="${netClass}">${fmtUSD(d.net)}</td>
+          <td>${status}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function exportCSV() {
+      if (!researchData.results.length) return;
+      const headers = ["Pair","Token","Current","Std","EntryThreshold","ExitThreshold","HalfLife","Excursions","Closed","MedClose","Pct5s","WinRate","AvgNet","TotalNet","ROI%","MaxDD","Sharpe","TradesA","TradesB","EntryFees","ExitFees","Slippage","FundingCost"];
+      const rows = researchData.results.map(r => [
+        r.pair,
+        r.coin_a ? r.coin_a + "/" + r.coin_b : (r.a && r.b && document.getElementById("mode").value === "single" ? r.a + "/" + r.b : ""),
+        r.current != null ? r.current.toFixed(6) : "",
+        r.std != null ? r.std.toFixed(6) : "",
+        r.entry_threshold != null ? r.entry_threshold.toFixed(6) : "",
+        r.exit_threshold != null ? r.exit_threshold.toFixed(6) : "",
+        r.half_life != null ? r.half_life.toFixed(2) : "",
+        r.excursions,
+        r.closed,
+        r.median_close_seconds != null ? r.median_close_seconds.toFixed(2) : "",
+        r.pct_closed_5s != null ? r.pct_closed_5s.toFixed(1) : "",
+        r.pct_profitable.toFixed(1),
+        r.avg_net.toFixed(4),
+        r.total_net_pnl.toFixed(4),
+        r.return_on_margin.toFixed(2),
+        r.max_drawdown.toFixed(4),
+        r.net_sharpe.toFixed(2),
+        r.trade_count_a || 0,
+        r.trade_count_b || 0,
+        ((r.fee_breakdown || {}).entry_fees || 0).toFixed(4),
+        ((r.fee_breakdown || {}).exit_fees || 0).toFixed(4),
+        ((r.fee_breakdown || {}).slippage_cost || 0).toFixed(4),
+        (r.total_fund_cost || 0).toFixed(4),
+      ].join(","));
+      const csv = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `research_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Auto-refresh
+    document.getElementById("auto-refresh").addEventListener("change", (e) => {
+      const label = document.getElementById("auto-label");
+      if (e.target.checked) {
+        autoRefreshTimer = setInterval(runResearch, 15000);
+        runResearch();
+        label.textContent = "Auto ON (15s)";
+        label.style.color = "#34d399";
+      } else {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+        label.textContent = "Auto (15s)";
+        label.style.color = "";
+      }
+    });
+
+    // Enter key on any input triggers run
+    document.querySelectorAll(".toolbar input").forEach(el => {
+      el.addEventListener("keydown", (e) => { if (e.key === "Enter") runResearch(); });
+      el.addEventListener("change", () => {
+        if (el.id !== "preset") document.getElementById("preset").value = "";
+      });
+    });
+
+    // No auto-run — user clicks Run Research or picks a preset then clicks Run
+
+    // Live data counter — polls every 5s
+    async function updateDataCounter() {
+      try {
+        const res = await fetch("/data-stats");
+        const d = await res.json();
+        if (!d.ok) return;
+        const el = document.getElementById("data-counter");
+        const span = d.span_hours;
+        const rows = d.total_rows.toLocaleString();
+        const files = d.files;
+        const tc = d.trade_counts || {};
+        const totalTrades = Object.values(tc).reduce((a, b) => a + b, 0).toLocaleString();
+        const tradeBreakdown = Object.entries(tc).map(([ex, c]) => `${ex}:${c.toLocaleString()}`).join(" · ");
+        el.textContent = `📊 ${span}h | ${rows} BBO ticks | ${totalTrades} trades | ${tradeBreakdown}`;
+      } catch (e) { /* ignore */ }
+    }
+    updateDataCounter();
+    setInterval(updateDataCounter, 5000);
+
+    async function discoverAssets() {
+      const btn = document.getElementById("discover-btn");
+      const popup = document.getElementById("discover-result");
+      const title = document.getElementById("discover-title");
+      const body = document.getElementById("discover-body");
+      btn.disabled = true;
+      btn.textContent = "Fetching...";
+      popup.classList.add("show");
+      title.textContent = "Discovering Assets...";
+      body.innerHTML = "<p style='color:var(--muted)'>Querying all exchanges for available perps (~10s)...</p>";
+      try {
+        const res = await fetch("/discover-assets");
+        const d = await res.json();
+        if (!d.ok) throw new Error(d.error || "unknown error");
+        let html = "";
+        let totalAdded = 0;
+        for (const [exch, info] of Object.entries(d.results)) {
+          if (info.error) {
+            html += `<div class="exch-row"><b>${exch}</b>: <span class="removed">Error: ${info.error}</span></div>`;
+            continue;
+          }
+          const added = info.added || [];
+          const removed = info.removed || [];
+          totalAdded += added.length;
+          let line = `<div class="exch-row"><b>${exch}</b>: ${info.total} assets`;
+          if (added.length) line += ` · <span class="added">+${added.length} new</span>`;
+          if (removed.length) line += ` · <span class="removed">-${removed.length} removed</span>`;
+          line += "</div>";
+          if (added.length) line += `<div class="exch-row" style="padding-left:16px"><span class="added">Added: ${added.join(", ")}</span></div>`;
+          if (removed.length) line += `<div class="exch-row" style="padding-left:16px"><span class="removed">Removed: ${removed.join(", ")}</span></div>`;
+          html += line;
+        }
+        body.innerHTML = html;
+        if (d.changed) {
+          title.textContent = `Found ${totalAdded} new asset(s)`;
+          body.innerHTML += `<div class="restart-note">New assets discovered. Restart the service to start collecting data for them:<br><code style="color:var(--accent)">systemctl --user restart xchange-dashboard.service</code></div>`;
+        } else {
+          title.textContent = "Assets Up to Date";
+          body.innerHTML += "<p style='color:var(--ok);margin-top:10px'>No changes detected. All exchange asset lists are current.</p>";
+        }
+      } catch (e) {
+        title.textContent = "Error";
+        body.innerHTML = `<p style="color:var(--err)">${e.message}</p>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Discover Assets";
+      }
+    }
+  </script>
+</body>
+</html>

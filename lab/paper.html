@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="mock_api.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Trade — Cross-Exchange Spread Backtest</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    :root { --bg: #0f1115; --panel: #181a20; --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8; --ok: #34d399; --warn: #fbbf24; --err: #f87171; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace; background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d333b; padding-bottom: 15px; margin-bottom: 20px; }
+    h1 { margin: 0; color: var(--accent); font-size: 1.3rem; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .nav { display: flex; gap: 14px; font-size: 0.85rem; }
+    .nav a { color: var(--accent); }
+    .nav a.active { font-weight: 600; text-decoration: underline; }
+    .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; color: var(--muted); }
+    .controls input, .controls select { background: var(--panel); color: var(--text); border: 1px solid #2d333b; padding: 5px 10px; border-radius: 4px; }
+    button { background: #2d333b; color: var(--text); border: 1px solid #3d444d; border-radius: 4px; padding: 6px 14px; cursor: pointer; }
+    button:hover { background: #3d444d; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .summary-card { background: var(--panel); border: 1px solid #23262d; border-radius: 10px; padding: 16px; }
+    .summary-card h3 { margin: 0 0 8px; font-size: 0.8rem; color: var(--muted); }
+    .summary-card .big { font-size: 1.2rem; color: var(--text); }
+    .ok { color: var(--ok); }
+    .err { color: var(--err); }
+    .chart-box { background: var(--panel); border: 1px solid #23262d; border-radius: 10px; padding: 16px; margin-bottom: 24px; height: 400px; display: flex; flex-direction: column; }
+    .chart-box h2 { font-size: 1rem; margin: 0 0 12px; }
+    .chart-box canvas { flex: 1; min-height: 0; width: 100%; }
+    .table-wrap { background: var(--panel); border: 1px solid #23262d; border-radius: 10px; padding: 16px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #23262d; }
+    th:first-child, td:first-child { text-align: left; }
+    th { color: var(--muted); font-weight: 500; cursor: pointer; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    th:hover { color: var(--text); }
+    th.sort-asc::after { content: " ↑"; color: var(--accent); }
+    th.sort-desc::after { content: " ↓"; color: var(--accent); }
+    #trades-table thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
+    .status { color: var(--muted); font-size: 0.85rem; margin-left: 8px; }
+    .rule { background: var(--panel); border: 1px solid #23262d; border-radius: 6px; padding: 12px; margin-bottom: 20px; color: var(--muted); font-size: 0.85rem; }
+    .tip { background: #14161b; border: 1px solid #23262d; border-radius: 8px; padding: 14px; margin-bottom: 20px; color: var(--muted); font-size: 0.85rem; }
+    .tip h3 { margin: 0 0 8px; color: var(--accent); font-size: 0.95rem; }
+    .tip ul { margin: 6px 0 0 18px; padding: 0; }
+    .suggest-box { display: none; background: var(--panel); border: 1px solid #23262d; border-radius: 8px; padding: 14px; margin-bottom: 20px; }
+    .suggest-box h3 { margin: 0 0 10px; color: var(--accent); font-size: 0.95rem; }
+    .suggest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; font-size: 0.85rem; }
+    .suggest-grid div { background: #14161b; padding: 8px; border-radius: 4px; text-align: center; }
+    .suggest-grid .label { color: var(--muted); font-size: 0.75rem; }
+    .suggest-grid .value { color: var(--text); font-family: "SF Mono", Monaco, monospace; }
+
+    /* Asset picker modal */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+    .modal-box { background: var(--panel); border: 1px solid #23262d; border-radius: 12px; width: 90%; max-width: 700px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+    .modal-header { padding: 16px 20px; border-bottom: 1px solid #23262d; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h2 { margin: 0; font-size: 1.1rem; color: var(--accent); }
+    .modal-close { background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; padding: 0 4px; }
+    .modal-close:hover { color: var(--text); }
+    .modal-search { padding: 12px 20px; border-bottom: 1px solid #23262d; }
+    .modal-search input { width: 100%; background: var(--bg); color: var(--text); border: 1px solid #2d333b; border-radius: 6px; padding: 8px 14px; font-size: 0.9rem; outline: none; }
+    .modal-search input:focus { border-color: var(--accent); }
+    .modal-filters { padding: 8px 20px; border-bottom: 1px solid #23262d; display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 8px 12px; }
+    .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 4px; }
+    .asset-card { padding: 8px 12px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; font-size: 0.85rem; display: flex; flex-direction: column; gap: 2px; transition: all 0.1s; }
+    .asset-card:hover { background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.2); }
+    .asset-card.selected { background: rgba(56,189,248,0.15); border-color: var(--accent); }
+    .asset-card .sym { font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+    .asset-card .name { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .asset-card .exchs { font-size: 0.65rem; color: #64748b; }
+    .asset-card .cat-tag { font-size: 0.6rem; padding: 0 5px; border-radius: 3px; text-transform: uppercase; font-weight: 600; }
+    .cat-crypto { background: rgba(247,147,26,0.15); color: #f7931a; }
+    .cat-stock { background: rgba(52,211,153,0.12); color: #34d399; }
+    .cat-commodity { background: rgba(251,191,36,0.12); color: #fbbf24; }
+    .cat-forex { background: rgba(56,189,248,0.12); color: #38bdf8; }
+    .cat-index { background: rgba(167,139,250,0.12); color: #a78bfa; }
+    .cat-etf { background: rgba(244,114,182,0.12); color: #f472b6; }
+    .cat-preipo { background: rgba(248,113,113,0.12); color: #f87171; }
+    .modal-footer { padding: 12px 20px; border-top: 1px solid #23262d; display: flex; justify-content: space-between; align-items: center; }
+    .modal-footer .info { font-size: 0.8rem; color: var(--muted); }
+    .asset-pick-btn { background: var(--panel); color: var(--text); border: 1px solid #2d333b; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+    .asset-pick-btn:hover { border-color: var(--accent); }
+    .asset-pick-btn .pick-sym { font-weight: 600; color: var(--accent); }
+    .asset-pick-btn .pick-name { font-size: 0.72rem; color: var(--muted); }
+    .cat-btn { background: var(--bg); color: var(--muted); border: 1px solid #2d333b; border-radius: 4px; padding: 3px 10px; cursor: pointer; font-size: 0.78rem; transition: all 0.15s; }
+    .cat-btn:hover { border-color: var(--accent); color: var(--text); }
+    .cat-btn.active { background: rgba(56,189,248,0.15); border-color: var(--accent); color: var(--accent); }
+    .retention-warning { font-size: 0.75rem; color: #f0a040; margin: 2px 0 0 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Paper Trade — Cross-Exchange Spread Backtest</h1>
+      <div class="retention-warning">Historical data limited to the last 14 days</div>
+      <nav class="nav">
+        <a href="../index.html">Dashboard</a>
+        <a href="charts.html">Charts</a>
+        <a href="price_history.html">Price History</a>
+        <a href="research.html">Research</a>
+        <a href="paper.html" class="active">Paper Trade</a>
+        <a href="subaccount_paper.html">Sub-Account</a>
+        <a href="scanner.html">Scanner</a>
+      <a href="pair_scan.html">Pair Scan</a>
+        <a href="opportunities.html">Opportunities</a>
+      </nav>
+    </header>
+
+    <div class="rule">
+      Rule: open when spread between A and B exceeds ±<b id="rule-entry">0.10%</b>, close when it reverts below ±<b id="rule-exit">0.05%</b>.
+      Position size is $<b id="rule-notional">100</b> notional per leg. Each trade is two opposite accounts: e.g. short Coin A / long Coin B on A and long Coin A / short Coin B on B.
+    </div>
+
+    <div class="tip">
+      <h3>How to set ranges</h3>
+      <ul>
+        <li><b>Hours</b> = how far back to look. More hours = more reliable averages, but slower to react to changes.</li>
+        <li><b>Entry</b> = how big the spread must get before opening a trade. Higher = fewer, but stronger, signals.</li>
+        <li><b>Exit</b> = how far the spread must revert before closing. Lower = quicker exits, but may close too early.</li>
+        <li>Click <b>Suggest</b> to use the data itself: it picks an aggressive entry (p90) and an exit near p75.</li>
+      </ul>
+    </div>
+
+    <div class="controls">
+      A: <select id="a"></select>
+      B: <select id="b"></select>
+      Coin A: <button class="asset-pick-btn" onclick="openCoinPicker('A')"><span class="pick-sym" id="coin_a_display">BTC</span><span class="pick-name" id="coin_a_name">Bitcoin</span></button>
+      Coin B: <button class="asset-pick-btn" onclick="openCoinPicker('B')"><span class="pick-sym" id="coin_b_display">HYPE</span><span class="pick-name" id="coin_b_name">Hyperliquid</span></button>
+      Hours: <input type="number" id="hours" value="1" step="0.5" min="0.1" max="24" style="width: 70px;">
+      Entry: <input type="number" id="entry" value="0.1" step="0.01" min="0.01" style="width: 70px;">%
+      Exit: <input type="number" id="exit" value="0.05" step="0.01" min="0.005" style="width: 70px;">%
+      Notional: <input type="number" id="notional" value="100" step="1" min="1" style="width: 60px;">$
+      Entry fee: <select id="entry_fee" style="width: 80px;"><option value="taker" selected>taker</option><option value="maker">maker</option></select>
+      Exit fee: <select id="exit_fee" style="width: 80px;"><option value="taker" selected>taker</option><option value="maker">maker</option></select>
+      Fee mult: <input type="number" id="fee_multiple" value="2.0" step="0.1" min="0" style="width: 60px;" title="Minimum profit target as a multiple of round-trip fees. 2.0 = require profit >= 2x fees.">
+      Slippage: <input type="number" id="slippage" value="0.02" step="0.01" min="0" style="width: 60px;">%
+      <button onclick="runPaper()">Run Backtest</button>
+      <button onclick="suggestThresholds()">Suggest</button>
+      <span id="status" class="status">Click Run to simulate</span>
+    </div>
+
+    <div id="suggest-box" class="suggest-box">
+      <h3>Suggested ranges from data <span id="suggest-pair"></span></h3>
+      <div class="suggest-grid" id="suggest-grid"></div>
+      <div style="margin-top: 12px;">
+        <button onclick="applySuggestion()">Apply suggested entry/exit</button>
+      </div>
+    </div>
+
+    <div class="summary" id="summary"></div>
+
+    <div class="chart-box">
+      <h2>Equity Curve</h2>
+      <canvas id="equityChart"></canvas>
+    </div>
+
+    <div class="chart-box">
+      <h2>Spread with Trades</h2>
+      <canvas id="priceChart"></canvas>
+    </div>
+
+    <div class="table-wrap">
+      <h2 style="font-size: 0.95rem; margin: 0 0 10px;">Trade Log — <span id="trade-log-pair">—</span></h2>
+      <div style="overflow-x: auto; max-height: 500px; overflow-y: auto; border: 1px solid #23262d; border-radius: 4px;">
+      <table id="trades-table" style="font-size: 0.78rem; min-width: 2200px;">
+        <thead>
+          <tr>
+            <th onclick="sortTrades('idx')" class="sortable">#</th>
+            <th onclick="sortTrades('side')" class="sortable">Side</th>
+            <th onclick="sortTrades('open_ts')" class="sortable">Open Time</th>
+            <th onclick="sortTrades('close_ts')" class="sortable">Close Time</th>
+            <th onclick="sortTrades('duration')" class="sortable">Duration</th>
+            <th id="th-entry-a" onclick="sortTrades('entry_ask_a')" class="sortable">Entry A (ask/bid)</th>
+            <th id="th-entry-b" onclick="sortTrades('entry_ask_b')" class="sortable">Entry B (ask/bid)</th>
+            <th id="th-exit-a" onclick="sortTrades('exit_ask_a')" class="sortable">Exit A (ask/bid)</th>
+            <th id="th-exit-b" onclick="sortTrades('exit_ask_b')" class="sortable">Exit B (ask/bid)</th>
+            <th onclick="sortTrades('open_spread')" class="sortable">Open Spread</th>
+            <th onclick="sortTrades('close_spread')" class="sortable">Close Spread</th>
+            <th onclick="sortTrades('gross_pnl')" class="sortable">Gross</th>
+            <th id="th-coinA-a" onclick="sortTrades('btc_a_pnl')" class="sortable">CoinA A</th>
+            <th id="th-coinA-b" onclick="sortTrades('btc_b_pnl')" class="sortable">CoinA B</th>
+            <th id="th-coinB-a" onclick="sortTrades('hype_a_pnl')" class="sortable">CoinB A</th>
+            <th id="th-coinB-b" onclick="sortTrades('hype_b_pnl')" class="sortable">CoinB B</th>
+            <th id="th-fee-a" onclick="sortTrades('fee_a_total')" class="sortable">Fee A</th>
+            <th id="th-fee-b" onclick="sortTrades('fee_b_total')" class="sortable">Fee B</th>
+            <th id="th-slip-a" onclick="sortTrades('slippage_a')" class="sortable">Slip A</th>
+            <th id="th-slip-b" onclick="sortTrades('slippage_b')" class="sortable">Slip B</th>
+            <th id="th-fund-a" onclick="sortTrades('fund_a')" class="sortable">Fund A</th>
+            <th id="th-fund-b" onclick="sortTrades('fund_b')" class="sortable">Fund B</th>
+            <th onclick="sortTrades('net_pnl')" class="sortable">Net P&L</th>
+            <th onclick="sortTrades('close_reason')" class="sortable">Close</th>
+            <th onclick="sortTrades('entry_ts_gap')" class="sortable">Gap</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div id="trade-log-legend" style="font-size: 0.7rem; color: var(--muted); margin-top: 4px;"></div>
+    </div>
+  </div>
+
+  <script>
+    let EXCHANGES = ["Hyperliquid", "Paradex", "GRVT", "Aevo", "Asterdex", "Binance", "Variational", "Interactive Brokers"];
+    let allAssets = [];
+    let modalContext = null;
+    let modalCategory = "all";
+    let modalSearch = "";
+
+    async function loadAssets() {
+      try {
+        const res = await fetch("/assets");
+        const data = await res.json();
+        if (data.ok) allAssets = data.assets;
+      } catch (e) { console.error("Failed to load assets:", e); }
+    }
+
+    function catClass(cat) {
+      return { crypto: "cat-crypto", stock: "cat-stock", commodity: "cat-commodity",
+               forex: "cat-forex", index: "cat-index", etf: "cat-etf", preipo: "cat-preipo" }[cat] || "";
+    }
+
+    function exchShort(exchanges) {
+      const map = { Hyperliquid: "Hype", Paradex: "Para", GRVT: "GRVT", Aevo: "Aevo", Asterdex: "Aste", Binance: "Bina", Variational: "Vari", "Interactive Brokers": "IBKR" };
+      return exchanges.map(e => map[e] || e.substring(0, 4)).join(" · ");
+    }
+
+    function getModalAssets() {
+      let assets = allAssets.filter(a => a.exchanges.length >= 1);
+      if (modalCategory !== "all") assets = assets.filter(a => a.category === modalCategory);
+      if (modalSearch) {
+        const q = modalSearch.toUpperCase();
+        assets = assets.filter(a => a.symbol.includes(q) || a.name.toUpperCase().includes(q));
+      }
+      return assets;
+    }
+
+    function openCoinPicker(slot) {
+      modalContext = slot;
+      modalCategory = "all";
+      modalSearch = "";
+      const title = slot === "A" ? "Select Coin A" : "Select Coin B";
+      const currentSym = document.getElementById(`coin_${slot.toLowerCase()}_display`).textContent;
+      renderModal(title, currentSym);
+    }
+
+    function renderModal(title, currentSym) {
+      const overlay = document.createElement("div");
+      overlay.className = "modal-overlay";
+      overlay.id = "asset-modal";
+      overlay.onclick = (e) => { if (e.target === overlay) closeModal(); };
+      overlay.innerHTML = `
+        <div class="modal-box">
+          <div class="modal-header">
+            <h2>${title}</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+          </div>
+          <div class="modal-search">
+            <input type="text" id="modal_search_input" placeholder="Search by symbol or name..." value="${modalSearch}" autocomplete="off">
+          </div>
+          <div class="modal-filters">
+            <button class="cat-btn ${modalCategory==='all'?'active':''}" onclick="setModalCat('all')">All</button>
+            <button class="cat-btn ${modalCategory==='crypto'?'active':''}" onclick="setModalCat('crypto')">Crypto</button>
+            <button class="cat-btn ${modalCategory==='stock'?'active':''}" onclick="setModalCat('stock')">Stocks</button>
+            <button class="cat-btn ${modalCategory==='commodity'?'active':''}" onclick="setModalCat('commodity')">Commodities</button>
+            <button class="cat-btn ${modalCategory==='forex'?'active':''}" onclick="setModalCat('forex')">Forex</button>
+            <button class="cat-btn ${modalCategory==='index'?'active':''}" onclick="setModalCat('index')">Indices</button>
+            <button class="cat-btn ${modalCategory==='etf'?'active':''}" onclick="setModalCat('etf')">ETFs</button>
+            <button class="cat-btn ${modalCategory==='preipo'?'active':''}" onclick="setModalCat('preipo')">Pre-IPO</button>
+          </div>
+          <div class="modal-body" id="modal_body"></div>
+          <div class="modal-footer">
+            <span class="info" id="modal_info"></span>
+            <button onclick="closeModal()">Done</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      const searchInput = document.getElementById("modal_search_input");
+      searchInput.addEventListener("input", () => { modalSearch = searchInput.value; renderModalBody(currentSym); });
+      searchInput.focus();
+      renderModalBody(currentSym);
+    }
+
+    function setModalCat(cat) {
+      modalCategory = cat;
+      document.querySelectorAll(".modal-filters .cat-btn").forEach(b => {
+        b.classList.toggle("active", b.textContent === cat || (cat === "all" && b.textContent === "All"));
+      });
+      const currentSym = document.getElementById(`coin_${modalContext.toLowerCase()}_display`).textContent;
+      renderModalBody(currentSym);
+    }
+
+    function renderModalBody(currentSym) {
+      const body = document.getElementById("modal_body");
+      const assets = getModalAssets();
+      const info = document.getElementById("modal_info");
+      if (!assets.length) {
+        body.innerHTML = "<div style='padding:20px;text-align:center;color:#64748b;'>No assets found</div>";
+        info.textContent = "0 assets";
+        return;
+      }
+      body.innerHTML = `<div class="asset-grid">${assets.map(a => {
+        const isSelected = a.symbol === currentSym;
+        return `<div class="asset-card ${isSelected ? 'selected' : ''}" data-sym="${a.symbol}" data-name="${a.name}">
+          <div class="sym">
+            <b>${a.symbol}</b>
+            <span class="cat-tag ${catClass(a.category)}">${a.category}</span>
+          </div>
+          <div class="name">${a.name}</div>
+          <div class="exchs">${exchShort(a.exchanges)}</div>
+        </div>`;
+      }).join("")}</div>`;
+      info.textContent = `${assets.length} assets`;
+      body.querySelectorAll(".asset-card").forEach(card => {
+        card.onclick = () => {
+          const sym = card.dataset.sym;
+          const name = card.dataset.name;
+          const slot = modalContext.toLowerCase();
+          document.getElementById(`coin_${slot}_display`).textContent = sym;
+          document.getElementById(`coin_${slot}_name`).textContent = name;
+          closeModal();
+        };
+      });
+    }
+
+    function closeModal() {
+      const m = document.getElementById("asset-modal");
+      if (m) m.remove();
+    }
+
+    async function loadExchanges() {
+      try {
+        const res = await fetch("/exchanges");
+        const data = await res.json();
+        if (data.ok && data.exchanges) EXCHANGES = data.exchanges;
+      } catch (e) {}
+      fillSelects();
+    }
+
+    function fillSelects() {
+      const a = document.getElementById("a");
+      const b = document.getElementById("b");
+      a.innerHTML = ""; b.innerHTML = "";
+      EXCHANGES.forEach((ex, i) => {
+        a.appendChild(new Option(ex, ex, i === 0, i === 0));
+        b.appendChild(new Option(ex, ex, i === 1, i === 1));
+      });
+    }
+    loadAssets().then(() => loadExchanges());
+
+    const equityChart = new Chart(document.getElementById("equityChart").getContext("2d"), {
+      type: "line",
+      data: { datasets: [{
+        label: "Equity ($)",
+        data: [],
+        borderColor: "#38bdf8",
+        pointRadius: 0,
+        borderWidth: 1.5,
+        tension: 0.1,
+        segment: { borderColor: ctx => ctx.p0.parsed.y >= 0 ? "#34d399" : "#f87171" }
+      }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 0 },
+        interaction: { mode: "nearest", axis: "x", intersect: false },
+        scales: {
+          x: { type: "linear", position: "bottom", ticks: { callback: v => new Date(v * 1000).toLocaleTimeString() } },
+          y: { title: { display: true, text: "$ P&L" } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => new Date(items[0].parsed.x * 1000).toLocaleTimeString(),
+              label: (item) => `$${item.parsed.y.toFixed(4)}`
+            }
+          },
+          legend: { display: false }
+        }
+      }
+    });
+
+    function arrowCanvas(color, up) {
+      const c = document.createElement("canvas");
+      c.width = 20; c.height = 20;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      if (up) {
+        ctx.moveTo(10, 2); ctx.lineTo(17, 12); ctx.lineTo(13, 12);
+        ctx.lineTo(13, 18); ctx.lineTo(7, 18); ctx.lineTo(7, 12); ctx.lineTo(3, 12); ctx.closePath();
+      } else {
+        ctx.moveTo(10, 18); ctx.lineTo(17, 8); ctx.lineTo(13, 8);
+        ctx.lineTo(13, 2); ctx.lineTo(7, 2); ctx.lineTo(7, 8); ctx.lineTo(3, 8); ctx.closePath();
+      }
+      ctx.fill();
+      return c;
+    }
+
+    const dataLabelsPlugin = {
+      id: "dataLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = "11px monospace";
+        ctx.textAlign = "center";
+        chart.data.datasets.forEach((ds, i) => {
+          if (ds.type !== "scatter" && ds.datalabels !== true) return;
+          const meta = chart.getDatasetMeta(i);
+          const dec = ds.datalabelDecimals || 2;
+          const offset = ds.datalabelOffset || -12;
+          const color = ds.datalabelColor || (ds.borderColor || "#fff");
+          const formatter = ds.datalabelFormatter || ((v) => v.toFixed(dec));
+          ctx.fillStyle = color;
+          meta.data.forEach((el, idx) => {
+            const val = ds.data[idx].y;
+            const text = formatter(val);
+            ctx.fillText(text, el.x, el.y + offset);
+          });
+        });
+        ctx.restore();
+      }
+    };
+    Chart.register(dataLabelsPlugin);
+
+    const priceChart = new Chart(document.getElementById("priceChart").getContext("2d"), {
+      type: "line",
+      data: { datasets: [
+        { label: "Spread", data: [], borderColor: "#38bdf8", pointRadius: 0, borderWidth: 1.5, tension: 0.1, yAxisID: "y" },
+        { label: "+Entry", data: [], borderColor: "#f87171", pointRadius: 0, borderWidth: 1, borderDash: [5,5], fill: false },
+        { label: "-Entry", data: [], borderColor: "#f87171", pointRadius: 0, borderWidth: 1, borderDash: [5,5], fill: false },
+        { label: "+Exit", data: [], borderColor: "#fbbf24", pointRadius: 0, borderWidth: 1, borderDash: [3,3], fill: false },
+        { label: "-Exit", data: [], borderColor: "#fbbf24", pointRadius: 0, borderWidth: 1, borderDash: [3,3], fill: false },
+        { type: "scatter", label: "Buys", data: [], backgroundColor: "#34d399", borderColor: "#34d399", borderWidth: 2, pointStyle: arrowCanvas("#34d399", true), pointRadius: 8, pointHoverRadius: 10, datalabels: true, datalabelOffset: -14, datalabelColor: "#34d399", datalabelFormatter: (v) => (v * 100).toFixed(3) + "%" },
+        { type: "scatter", label: "Sells", data: [], backgroundColor: "#f87171", borderColor: "#f87171", borderWidth: 2, pointStyle: arrowCanvas("#f87171", false), pointRadius: 8, pointHoverRadius: 10, datalabels: true, datalabelOffset: 14, datalabelColor: "#f87171", datalabelFormatter: (v) => (v * 100).toFixed(3) + "%" }
+      ]},
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 0 },
+        interaction: { mode: "nearest", axis: "x", intersect: false },
+        scales: {
+          x: { type: "linear", position: "bottom", ticks: { callback: v => new Date(v * 1000).toLocaleTimeString() } },
+          y: { title: { display: true, text: "Spread (%)" }, ticks: { callback: v => (v * 100).toFixed(3) + "%" } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (items) => new Date(items[0].parsed.x * 1000).toLocaleString(),
+              label: (item) => `${item.dataset.label}: ${(item.parsed.y * 100).toFixed(4)}%`
+            }
+          }
+        }
+      }
+    });
+
+    function fmtTime(ts) {
+      return new Date(ts * 1000).toLocaleTimeString();
+    }
+
+    function fmtDur(s) {
+      if (s == null) return "—";
+      return s < 60 ? s.toFixed(1) + "s" : (s / 60).toFixed(2) + "m";
+    }
+
+    function fmtPct(n) {
+      if (n == null) return "—";
+      return (n * 100).toFixed(4) + "%";
+    }
+
+    function fmt$(n) {
+      if (n == null) return "—";
+      const cls = n >= 0 ? "ok" : "err";
+      return `<span class="${cls}">$${n.toFixed(4)}</span>`;
+    }
+
+    function fmtPx(v) {
+      if (v == null) return "—";
+      return "$" + (v < 1 ? v.toFixed(6) : v.toFixed(2));
+    }
+
+    function fmtCrossEntry(ask, bid) {
+      if (ask == null && bid == null) return "—";
+      return `${fmtPx(ask)}<span style="color:var(--muted)"> / </span>${fmtPx(bid)}`;
+    }
+
+    let tradeSortKey = null;
+    let tradeSortAsc = false;
+    let tradeData = [];
+
+    function sortTrades(key) {
+      if (tradeSortKey === key) tradeSortAsc = !tradeSortAsc;
+      else { tradeSortKey = key; tradeSortAsc = false; }
+      renderTrades(tradeData);
+    }
+
+    function fmtLeg(leg) {
+      const keys = Object.keys(leg).filter(k => k !== 'exchange');
+      return keys.map(k => `${k.toUpperCase()} ${leg[k]}`).join(' / ');
+    }
+
+    async function runPaper() {
+      const status = document.getElementById("status");
+      status.textContent = "Simulating…";
+      const a = document.getElementById("a").value;
+      const b = document.getElementById("b").value;
+      const coinA = document.getElementById("coin_a_display").textContent.trim();
+      const coinB = document.getElementById("coin_b_display").textContent.trim();
+      const hours = document.getElementById("hours").value;
+      const entry = document.getElementById("entry").value;
+      const exit = document.getElementById("exit").value;
+      const notional = document.getElementById("notional").value;
+      const entryFee = document.getElementById("entry_fee").value;
+      const exitFee = document.getElementById("exit_fee").value;
+      const feeMultiple = document.getElementById("fee_multiple").value;
+      const slippage = document.getElementById("slippage").value;
+      document.getElementById("rule-entry").textContent = entry + "%";
+      document.getElementById("rule-exit").textContent = exit + "%";
+      document.getElementById("rule-notional").textContent = notional;
+      try {
+        const res = await fetch(`/paper_trade?a=${a}&b=${b}&hours=${hours}&entry=${entry}&exit=${exit}&notional=${notional}&entry_fee=${entryFee}&exit_fee=${exitFee}&fee_multiple=${feeMultiple}&slippage=${slippage}&coin_a=${coinA}&coin_b=${coinB}`);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "unknown error");
+        renderSummary(data.summary, data.trade_volume);
+        renderEquity(data.equity);
+        renderPriceChart(data.spread_series, data.trades, data.entry_pct, data.exit_pct);
+        renderTrades(data.trades);
+        renderDataQuality(data.data_quality, data.exchange_a, data.exchange_b);
+        status.textContent = `Simulated ${data.summary.trades} trades over ${hours}h`;
+      } catch (e) {
+        status.textContent = "Error: " + e.message;
+      }
+    }
+
+    function renderSummary(s, tradeVol) {
+      const root = document.getElementById("summary");
+      let volCards = "";
+      if (tradeVol) {
+        for (const [ex, info] of Object.entries(tradeVol)) {
+          const volStr = info.volume >= 1e6 ? `$${(info.volume/1e6).toFixed(2)}M` :
+                         info.volume >= 1e3 ? `$${(info.volume/1e3).toFixed(1)}K` :
+                         `$${info.volume.toFixed(0)}`;
+          volCards += `<div class="summary-card"><h3>${ex} Trades</h3><div class="big">${info.count.toLocaleString()}</div><div style="font-size:0.8rem;color:var(--muted)">${volStr} volume</div></div>`;
+        }
+      }
+      root.innerHTML = `
+        <div class="summary-card"><h3>Trades</h3><div class="big">${s.trades}</div></div>
+        <div class="summary-card"><h3>Win Rate</h3><div class="big ${s.win_rate >= 50 ? 'ok' : ''}">${s.win_rate.toFixed(1)}%</div></div>
+        <div class="summary-card"><h3>Total Gross</h3><div class="big">$${s.total_gross_pnl.toFixed(4)}</div></div>
+        <div class="summary-card"><h3>Total Fees</h3><div class="big err">$${s.total_fees.toFixed(4)}</div></div>
+        <div class="summary-card"><h3>Total Slippage</h3><div class="big err">$${(s.total_slippage || 0).toFixed(4)}</div></div>
+        <div class="summary-card"><h3>Net Funding</h3><div class="big ${(s.total_funding || 0) >= 0 ? 'ok' : 'err'}">$${(s.total_funding || 0).toFixed(4)}</div></div>
+        <div class="summary-card"><h3>Net P&L</h3><div class="big ${s.total_pnl >= 0 ? 'ok' : 'err'}">$${s.total_pnl.toFixed(4)}</div></div>
+        <div class="summary-card"><h3>Break-even Gross</h3><div class="big err">$${(s.break_even || 0).toFixed(4)}</div><div style="font-size:0.7rem;color:var(--muted)">fees + slippage</div></div>
+        <div class="summary-card"><h3>Target Net Profit</h3><div class="big">$${s.min_take_profit.toFixed(4)}</div><div style="font-size:0.7rem;color:var(--muted)">${(s.fee_multiple || 0).toFixed(1)}× fees</div></div>
+        <div class="summary-card"><h3>Required Gross</h3><div class="big" style="color:var(--warn)">$${(s.required_gross || 0).toFixed(4)}</div><div style="font-size:0.7rem;color:var(--muted)">break-even + target</div></div>
+        <div class="summary-card"><h3>Max Drawdown</h3><div class="big err">$${s.max_drawdown.toFixed(4)}</div></div>
+        <div class="summary-card"><h3>Med Duration</h3><div class="big">${fmtDur(s.median_duration)}</div></div>
+        ${volCards}
+      `;
+    }
+
+    function renderDataQuality(dq, exA, exB) {
+      const existing = document.getElementById("sync-warning");
+      if (existing) existing.remove();
+      if (!dq) return;
+      const ticksA = (dq.ticks_a || 0).toLocaleString();
+      const ticksB = (dq.ticks_b || 0).toLocaleString();
+      const aligned = (dq.aligned_samples || 0).toLocaleString();
+      const ratio = ((dq.sync_ratio || 0) * 100).toFixed(1);
+      const intA = (dq.median_interval_a || 0).toFixed(1);
+      const intB = (dq.median_interval_b || 0).toFixed(1);
+      const medGap = (dq.median_ts_gap || 0).toFixed(2);
+      const maxGap = (dq.max_ts_gap || 0).toFixed(2);
+      const p95Gap = (dq.p95_ts_gap || 0).toFixed(2);
+      const pctOver1s = (dq.pct_gaps_over_1s || 0).toFixed(1);
+      const msg = `${exA}: ${ticksA} ticks (median ${intA}s apart) vs ${exB}: ${ticksB} ticks (median ${intB}s apart) — sync ratio ${ratio}%, ${aligned} aligned samples. Timestamp gap: median ${medGap}s, p95 ${p95Gap}s, max ${maxGap}s. ${pctOver1s}% of points have gap > 1s.`;
+      const hasWarning = dq.sync_warning || dq.stale_warning || dq.gap_warning;
+      if (hasWarning) {
+        const div = document.createElement("div");
+        div.id = "sync-warning";
+        const warnings = [];
+        if (dq.sync_warning) warnings.push("tick count mismatch");
+        if (dq.stale_warning) warnings.push("infrequent updates");
+        if (dq.gap_warning) warnings.push("timestamp gaps > 2s median");
+        const isRed = dq.sync_warning || dq.gap_warning;
+        const color = isRed ? "#f87171" : "#fbbf24";
+        const bg = isRed ? "rgba(248,113,113,0.1)" : "rgba(251,191,36,0.1)";
+        const border = isRed ? "rgba(248,113,113,0.3)" : "rgba(251,191,36,0.3)";
+        div.style.cssText = `background:${bg};border:1px solid ${border};border-radius:8px;padding:12px;margin-bottom:16px;font-size:0.82rem;color:${color};`;
+        div.innerHTML = `<b>⚠ Data quality warning (${warnings.join(", ")}):</b> ${msg}`;
+        if (dq.gap_warning) {
+          div.innerHTML += " Spreads may be calculated from non-simultaneous prices. Treat entry signals with caution.";
+        }
+        document.querySelector(".summary").insertAdjacentElement("beforebegin", div);
+      }
+    }
+
+    function renderEquity(equity) {
+      equityChart.data.datasets[0].data = equity.map(([ts, v]) => ({ x: ts, y: v }));
+      equityChart.data.datasets[0].label = "Equity ($)";
+      equityChart.update();
+    }
+
+    function renderPriceChart(series, trades, entryPct, exitPct) {
+      if (!series || !series.length) {
+        priceChart.data.datasets.forEach(ds => ds.data = []);
+        priceChart.update();
+        return;
+      }
+      const first = series[0][0];
+      const last = series[series.length - 1][0];
+      const entry = (parseFloat(entryPct) || 0) / 100;
+      const exit = (parseFloat(exitPct) || 0) / 100;
+      priceChart.data.datasets[0].data = series.map(([t, v]) => ({ x: t, y: v }));
+      priceChart.data.datasets[1].data = [{ x: first, y: entry }, { x: last, y: entry }];
+      priceChart.data.datasets[2].data = [{ x: first, y: -entry }, { x: last, y: -entry }];
+      priceChart.data.datasets[3].data = [{ x: first, y: exit }, { x: last, y: exit }];
+      priceChart.data.datasets[4].data = [{ x: first, y: -exit }, { x: last, y: -exit }];
+      const buys = [];
+      const sells = [];
+      for (const t of (trades || [])) {
+        const isLong = t.side === "long";
+        if (t.open_ts != null) {
+          (isLong ? buys : sells).push({ x: t.open_ts, y: t.open_spread });
+        }
+        if (t.close_ts != null) {
+          (isLong ? sells : buys).push({ x: t.close_ts, y: t.close_spread });
+        }
+      }
+      priceChart.data.datasets[5].data = buys;
+      priceChart.data.datasets[6].data = sells;
+      priceChart.update();
+    }
+
+    function renderTrades(trades) {
+      tradeData = trades;
+      const tbody = document.querySelector("#trades-table tbody");
+      const pairLabel = document.getElementById("trade-log-pair");
+      const legend = document.getElementById("trade-log-legend");
+      tbody.innerHTML = "";
+
+      // Update headers with exchange names
+      const a = document.getElementById("a").value;
+      const b = document.getElementById("b").value;
+      const coinA = document.getElementById("coin_a_display").textContent.trim();
+      const coinB = document.getElementById("coin_b_display").textContent.trim();
+      pairLabel.textContent = `${a} vs ${b} (${coinA}/${coinB})`;
+      document.getElementById("th-entry-a").textContent = `Entry ${a} (${coinA}/${coinB})`;
+      document.getElementById("th-entry-b").textContent = `Entry ${b} (${coinA}/${coinB})`;
+      document.getElementById("th-exit-a").textContent = `Exit ${a} (${coinA}/${coinB})`;
+      document.getElementById("th-exit-b").textContent = `Exit ${b} (${coinA}/${coinB})`;
+      document.getElementById("th-fee-a").textContent = `Fee ${a}`;
+      document.getElementById("th-fee-b").textContent = `Fee ${b}`;
+      document.getElementById("th-slip-a").textContent = `Slip ${a}`;
+      document.getElementById("th-slip-b").textContent = `Slip ${b}`;
+      document.getElementById("th-fund-a").textContent = `Fund ${a}`;
+      document.getElementById("th-fund-b").textContent = `Fund ${b}`;
+      document.getElementById("th-coinA-a").textContent = `${coinA} ${a}`;
+      document.getElementById("th-coinA-b").textContent = `${coinA} ${b}`;
+      document.getElementById("th-coinB-a").textContent = `${coinB} ${a}`;
+      document.getElementById("th-coinB-b").textContent = `${coinB} ${b}`;
+      legend.innerHTML = `Each price cell: ask(${coinA}) / bid(${coinA}) on top line, ask(${coinB}) / bid(${coinB}) on bottom line. Gross = executable P&L from actual bid/ask at entry/exit. ${coinA} A/B = per-exchange ${coinA} leg P&L, ${coinB} A/B = per-exchange ${coinB} leg P&L. Funding: positive (green) = received, negative (red) = paid. Net = Gross − Fee A − Fee B − Slip A − Slip B + Fund A + Fund B. Close: "exit" = exit condition met, "EOW" = forced close. Gap = timestamp delta at entry (red > 2s).`;
+
+      if (!trades || !trades.length) {
+        tbody.innerHTML = `<tr><td colspan="25" style="text-align:center;color:var(--muted);padding:12px;">No trades triggered.</td></tr>`;
+        return;
+      }
+
+      // Sort indicators
+      document.querySelectorAll("#trades-table th").forEach(th => th.classList.remove("sort-asc", "sort-desc"));
+      if (tradeSortKey) {
+        const thMap = { idx: 0, side: 1, open_ts: 2, close_ts: 3, duration: 4,
+                        entry_ask_a: 5, entry_ask_b: 6, exit_ask_a: 7, exit_ask_b: 8,
+                        open_spread: 9, close_spread: 10, gross_pnl: 11,
+                        btc_a_pnl: 12, btc_b_pnl: 13, hype_a_pnl: 14, hype_b_pnl: 15,
+                        fee_a_total: 16, fee_b_total: 17, slippage_a: 18, slippage_b: 19,
+                        fund_a: 20, fund_b: 21, net_pnl: 22, close_reason: 23, entry_ts_gap: 24 };
+        const idx = thMap[tradeSortKey];
+        if (idx != null) {
+          const th = document.querySelectorAll("#trades-table th")[idx];
+          if (th) th.classList.add(tradeSortAsc ? "sort-asc" : "sort-desc");
+        }
+      }
+
+      // Apply sorting
+      const sorted = trades.map((t, i) => ({ ...t, idx: trades.length - i }));
+      if (tradeSortKey) {
+        sorted.sort((a, b) => {
+          let va = a[tradeSortKey], vb = b[tradeSortKey];
+          if (tradeSortKey === 'fee_a_total') {
+            va = (a.entry_fee_a || 0) + (a.exit_fee_a || 0);
+            vb = (b.entry_fee_a || 0) + (b.exit_fee_a || 0);
+          }
+          if (tradeSortKey === 'fee_b_total') {
+            va = (a.entry_fee_b || 0) + (a.exit_fee_b || 0);
+            vb = (b.entry_fee_b || 0) + (b.exit_fee_b || 0);
+          }
+          if (va == null) va = tradeSortAsc ? Infinity : -Infinity;
+          if (vb == null) vb = tradeSortAsc ? Infinity : -Infinity;
+          if (typeof va === "string" && typeof vb === "string") {
+            return tradeSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+          }
+          return tradeSortAsc ? (va > vb ? 1 : -1) : (va > vb ? -1 : 1);
+        });
+      }
+
+      sorted.forEach((t) => {
+        const tr = document.createElement("tr");
+        const netClass = t.net_pnl > 0 ? "ok" : (t.net_pnl < 0 ? "err" : "");
+        const sideClass = t.side === "long" ? "ok" : "warn";
+        // Show all 4 prices per exchange: ask_a/bid_a (coin_a) and ask_b/bid_b (coin_b)
+        const fmtPx = (v) => v != null ? `$${Number(v).toLocaleString(undefined, {maximumFractionDigits: 4})}` : "—";
+        const entryA = `${fmtPx(t.entry_ask_a)} / ${fmtPx(t.entry_bid_a)}<br><span style="font-size:0.65rem;color:var(--muted)">${fmtPx(t.entry_ask_b)} / ${fmtPx(t.entry_bid_b)}</span>`;
+        const entryB = `${fmtPx(t.entry_ask_a_b)} / ${fmtPx(t.entry_bid_a_b)}<br><span style="font-size:0.65rem;color:var(--muted)">${fmtPx(t.entry_ask_b_b)} / ${fmtPx(t.entry_bid_b_b)}</span>`;
+        const exitA = t.exit_ask_a != null ? `${fmtPx(t.exit_ask_a)} / ${fmtPx(t.exit_bid_a)}<br><span style="font-size:0.65rem;color:var(--muted)">${fmtPx(t.exit_ask_b)} / ${fmtPx(t.exit_bid_b)}</span>` : "—";
+        const exitB = t.exit_ask_a_b != null ? `${fmtPx(t.exit_ask_a_b)} / ${fmtPx(t.exit_bid_a_b)}<br><span style="font-size:0.65rem;color:var(--muted)">${fmtPx(t.exit_ask_b_b)} / ${fmtPx(t.exit_bid_b_b)}</span>` : "—";
+        const feeA = (t.entry_fee_a || 0) + (t.exit_fee_a || 0);
+        const feeB = (t.entry_fee_b || 0) + (t.exit_fee_b || 0);
+        const btcA = t.btc_a_pnl != null ? fmt$(t.btc_a_pnl) : "—";
+        const btcB = t.btc_b_pnl != null ? fmt$(t.btc_b_pnl) : "—";
+        const hypeA = t.hype_a_pnl != null ? fmt$(t.hype_a_pnl) : "—";
+        const hypeB = t.hype_b_pnl != null ? fmt$(t.hype_b_pnl) : "—";
+        tr.innerHTML = `
+          <td>${t.idx}</td>
+          <td class="${sideClass}">${t.side}</td>
+          <td>${fmtTime(t.open_ts)}</td>
+          <td>${fmtTime(t.close_ts)}</td>
+          <td>${fmtDur(t.duration)}</td>
+          <td style="font-size:0.72rem;line-height:1.3">${entryA}</td>
+          <td style="font-size:0.72rem;line-height:1.3">${entryB}</td>
+          <td style="font-size:0.72rem;line-height:1.3">${exitA}</td>
+          <td style="font-size:0.72rem;line-height:1.3">${exitB}</td>
+          <td>${fmtPct(t.open_spread)}</td>
+          <td>${fmtPct(t.close_spread)}</td>
+          <td>${fmt$(t.gross_pnl)}</td>
+          <td>${btcA}</td>
+          <td>${btcB}</td>
+          <td>${hypeA}</td>
+          <td>${hypeB}</td>
+          <td class="err">$${feeA.toFixed(4)}</td>
+          <td class="err">$${feeB.toFixed(4)}</td>
+          <td class="err">$${(t.slippage_a || 0).toFixed(4)}</td>
+          <td class="err">$${(t.slippage_b || 0).toFixed(4)}</td>
+          <td>${fmt$(t.fund_a || 0)}</td>
+          <td>${fmt$(t.fund_b || 0)}</td>
+          <td class="${netClass}">${fmt$(t.net_pnl)}</td>
+          <td style="font-size:0.7rem;color:${t.close_reason === 'end_of_window' ? 'var(--warn)' : 'var(--muted)'};white-space:nowrap;">${t.close_reason === 'end_of_window' ? 'EOW' : (t.close_reason === 'exit_rule' ? 'exit' : (t.close_reason || '—'))}</td>
+          <td style="font-size:0.7rem;color:${(t.entry_ts_gap || 0) > 2 ? 'var(--err)' : (t.entry_ts_gap || 0) > 1 ? 'var(--warn)' : 'var(--muted)'}">${(t.entry_ts_gap || 0).toFixed(2)}s</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    let lastSuggestion = null;
+
+    async function suggestThresholds() {
+      const status = document.getElementById("status");
+      status.textContent = "Analyzing spread distribution…";
+      const a = document.getElementById("a").value;
+      const b = document.getElementById("b").value;
+      const coinA = document.getElementById("coin_a_display").textContent.trim();
+      const coinB = document.getElementById("coin_b_display").textContent.trim();
+      const hours = document.getElementById("hours").value;
+      const notional = document.getElementById("notional").value;
+      const feeMultiple = document.getElementById("fee_multiple").value;
+      const entryFee = document.getElementById("entry_fee").value;
+      const exitFee = document.getElementById("exit_fee").value;
+      try {
+        const res = await fetch(`/suggest?a=${a}&b=${b}&hours=${hours}&notional=${notional}&fee_multiple=${feeMultiple}&entry_fee=${entryFee}&exit_fee=${exitFee}&coin_a=${coinA}&coin_b=${coinB}`);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "unknown error");
+        lastSuggestion = data;
+        document.getElementById("suggest-pair").textContent = `(${data.pair})`;
+        const grid = document.getElementById("suggest-grid");
+        grid.innerHTML = `
+          <div><div class="label">current</div><div class="value">${data.current_spread_pct.toFixed(4)}%</div></div>
+          <div><div class="label">p75</div><div class="value">${data.percentiles.p75.toFixed(4)}%</div></div>
+          <div><div class="label">p90</div><div class="value">${data.percentiles.p90.toFixed(4)}%</div></div>
+          <div><div class="label">p95</div><div class="value">${data.percentiles.p95.toFixed(4)}%</div></div>
+          <div><div class="label">break-even</div><div class="value" style="color:var(--warn)">${(data.break_even_pct || 0).toFixed(4)}%</div></div>
+          <div><div class="label">suggested entry</div><div class="value" style="color:var(--accent)">${data.suggested_entry_pct.toFixed(4)}%</div></div>
+          <div><div class="label">suggested exit</div><div class="value" style="color:var(--accent)">${data.suggested_exit_pct.toFixed(4)}%</div></div>
+        `;
+        const warnEl = document.getElementById("suggest-warning");
+        if (warnEl) warnEl.remove();
+        if (data.fee_warning) {
+          const warn = document.createElement("div");
+          warn.id = "suggest-warning";
+          warn.style.cssText = "margin-top:10px;font-size:0.8rem;color:var(--warn);background:rgba(251,191,36,0.08);padding:8px;border-radius:4px;";
+          warn.textContent = data.fee_warning;
+          grid.parentElement.appendChild(warn);
+        }
+        document.getElementById("suggest-box").style.display = "block";
+        status.textContent = "Suggestion ready";
+      } catch (e) {
+        status.textContent = "Error: " + e.message;
+      }
+    }
+
+    function applySuggestion() {
+      if (!lastSuggestion) return;
+      document.getElementById("entry").value = lastSuggestion.suggested_entry_pct.toFixed(4);
+      document.getElementById("exit").value = lastSuggestion.suggested_exit_pct.toFixed(4);
+      document.getElementById("rule-entry").textContent = lastSuggestion.suggested_entry_pct.toFixed(4) + "%";
+      document.getElementById("rule-exit").textContent = lastSuggestion.suggested_exit_pct.toFixed(4) + "%";
+      document.getElementById("suggest-box").style.display = "none";
+    }
+
+    function loadFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("a")) document.getElementById("a").value = params.get("a");
+      if (params.has("b")) document.getElementById("b").value = params.get("b");
+      if (params.has("hours")) document.getElementById("hours").value = params.get("hours");
+      if (params.has("entry")) {
+        document.getElementById("entry").value = params.get("entry");
+        document.getElementById("rule-entry").textContent = params.get("entry") + "%";
+      }
+      if (params.has("exit")) {
+        document.getElementById("exit").value = params.get("exit");
+        document.getElementById("rule-exit").textContent = params.get("exit") + "%";
+      }
+      if (params.has("notional")) document.getElementById("notional").value = params.get("notional");
+      if (params.has("coin_a")) document.getElementById("coin_a_display").textContent = params.get("coin_a");
+      if (params.has("coin_b")) document.getElementById("coin_b_display").textContent = params.get("coin_b");
+      if (params.has("a") || params.has("entry")) {
+        const statusEl = document.getElementById("status");
+        if (statusEl) statusEl.textContent = "Params loaded from research — click Run to simulate";
+      }
+    }
+
+    loadFromQuery();
+  </script>
+</body>
+</html>
