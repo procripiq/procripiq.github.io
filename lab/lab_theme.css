@@ -1,0 +1,171 @@
+/* =========================================================================
+   lab_theme.css — Shared theme override for all lab pages
+   Normalizes colors, fixes nav bar position, ensures consistency
+   ========================================================================= */
+
+/* ---- Normalize all CSS variables to one palette ---- */
+:root {
+  --bg: #0f1115 !important;
+  --panel: #181a20 !important;
+  --panel-2: #1f232b !important;
+  --panel2: #1f232b !important;
+  --text: #e2e8f0 !important;
+  --muted: #94a3b8 !important;
+  --accent: #38bdf8 !important;
+  --border: #2d333b !important;
+  --ok: #34d399 !important;
+  --bid: #34d399 !important;
+  --warn: #fbbf24 !important;
+  --err: #f87171 !important;
+  --bad: #f87171 !important;
+  --ask: #f87171 !important;
+}
+
+/* Force body background */
+body {
+  background: #0f1115 !important;
+  color: #e2e8f0 !important;
+  padding-top: 52px !important; /* space for fixed nav */
+  margin: 0 !important;
+}
+
+/* ---- Fix the ProCripiq nav bar: fixed, consistent height ---- */
+#procripiq-nav {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 52px !important;
+  z-index: 10000 !important;
+  background: rgba(10, 14, 23, 0.98) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 0 40px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  box-sizing: border-box !important;
+}
+
+#procripiq-nav a {
+  text-decoration: none !important;
+}
+
+#procripiq-nav > a:first-child {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  letter-spacing: -0.5px !important;
+  white-space: nowrap !important;
+}
+
+#procripiq-nav > a:first-child span {
+  color: #00D4FF !important;
+}
+
+#procripiq-nav > div {
+  display: flex !important;
+  gap: 24px !important;
+}
+
+#procripiq-nav > div a {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #9CA3AF !important;
+  white-space: nowrap !important;
+  transition: color 0.2s !important;
+}
+
+#procripiq-nav > div a:hover {
+  color: #ffffff !important;
+}
+
+/* ---- Ensure page content doesn't hide behind nav ---- */
+.container, .wrapper, main, .main-content {
+  margin-top: 0 !important;
+}
+
+/* ---- Normalize panel/card backgrounds ---- */
+.panel, .card, .box, .stat-card, .stat-box, .result-card {
+  background: #181a20 !important;
+  border-color: #2d333b !important;
+}
+
+/* ---- Normalize table styles ---- */
+table {
+  border-collapse: collapse !important;
+}
+
+th {
+  background: #1f232b !important;
+  color: #e2e8f0 !important;
+  border-color: #2d333b !important;
+}
+
+td {
+  border-color: #2d333b !important;
+  color: #e2e8f0 !important;
+}
+
+/* ---- Normalize input/select styles ---- */
+input, select, textarea {
+  background: #181a20 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #2d333b !important;
+  border-radius: 6px !important;
+  padding: 6px 10px !important;
+  font-size: 14px !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #38bdf8 !important;
+  outline: none !important;
+}
+
+button, .btn, [class*="button"] {
+  background: #1f232b !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #2d333b !important;
+  border-radius: 6px !important;
+  padding: 6px 16px !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  transition: background 0.2s, border-color 0.2s !important;
+}
+
+button:hover, .btn:hover, [class*="button"]:hover {
+  background: #2d333b !important;
+  border-color: #38bdf8 !important;
+}
+
+/* ---- Demo mode banner ---- */
+.demo-banner {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 10000 !important;
+  background: rgba(251, 191, 36, 0.1) !important;
+  border-top: 1px solid rgba(251, 191, 36, 0.3) !important;
+  color: #fbbf24 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  padding: 6px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* ---- Responsive nav ---- */
+@media (max-width: 768px) {
+  #procripiq-nav {
+    padding: 0 16px !important;
+  }
+  #procripiq-nav > div {
+    gap: 16px !important;
+  }
+  #procripiq-nav > div a {
+    font-size: 12px !important;
+  }
+}
