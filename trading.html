@@ -45,6 +45,23 @@
   .risk-card h3 { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 8px; }
   .risk-card p { font-size: 14px; color: #9CA3AF; }
 
+  /* Dashboard gallery */
+  .dash-group { margin-bottom: 60px; }
+  .dash-group h3 { font-size: 22px; font-weight: 600; color: #00D4FF; margin-bottom: 8px; text-align: center; }
+  .dash-group p.desc { font-size: 15px; color: #9CA3AF; text-align: center; margin-bottom: 24px; }
+  .dash-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .dash-item { background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; overflow: hidden; transition: transform 0.2s, border-color 0.2s; cursor: pointer; }
+  .dash-item:hover { transform: translateY(-4px); border-color: rgba(0,212,255,0.2); }
+  .dash-item img { width: 100%; display: block; }
+  .dash-item .caption { padding: 16px 20px; }
+  .dash-item .caption h4 { font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .dash-item .caption p { font-size: 13px; color: #9CA3AF; }
+
+  /* Lightbox */
+  .lightbox { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200; background: rgba(0,0,0,0.92); justify-content: center; align-items: center; cursor: pointer; }
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 92%; max-height: 92%; border-radius: 12px; }
+
   .footer { padding: 40px 60px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); background: #080B12; }
   .footer p { font-size: 14px; color: #6B7280; }
   .footer p span { color: #00D4FF; font-weight: 600; }
@@ -55,30 +72,11 @@
     .hero-stats { flex-direction: column; gap: 24px; }
     .section { padding: 60px 24px; } .section-header h2 { font-size: 28px; }
     .steps { grid-template-columns: 1fr; } .risk-grid { grid-template-columns: 1fr; }
+    .dash-gallery { grid-template-columns: 1fr; }
   }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
   .fade-up { animation: fadeUp 0.8s ease-out forwards; }
   .delay-1 { animation-delay: 0.1s; opacity: 0; } .delay-2 { animation-delay: 0.2s; opacity: 0; } .delay-3 { animation-delay: 0.3s; opacity: 0; }
-
-  /* Dashboard gallery */
-  .dash-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-  .dash-item {
-    background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
-    overflow: hidden; transition: transform 0.2s, border-color 0.2s;
-  }
-  .dash-item:hover { transform: translateY(-4px); border-color: rgba(0,212,255,0.2); }
-  .dash-item img { width: 100%; display: block; }
-  .dash-item .caption { padding: 16px 20px; }
-  .dash-item .caption h3 { font-size: 15px; font-weight: 600; color: #fff; }
-  .dash-item .caption p { font-size: 13px; color: #9CA3AF; }
-
-  /* Lightbox */
-  .lightbox {
-    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200;
-    background: rgba(0,0,0,0.9); justify-content: center; align-items: center; cursor: pointer;
-  }
-  .lightbox.active { display: flex; }
-  .lightbox img { max-width: 90%; max-height: 90%; border-radius: 12px; }
 </style>
 </head>
 <body>
@@ -131,59 +129,82 @@
   </div>
 </section>
 
+<!-- ============ DASHBOARD ============ -->
 <section class="section">
   <div class="section-header">
     <h2>The Dashboard</h2>
-    <p>Real-time monitoring of every cycle, position, and P&L movement. Here is what the bot looks like in action.</p>
+    <p>Real-time monitoring of every cycle, position, spread, and P&L movement. Here is what the system looks like in action.</p>
   </div>
-  <div class="dash-gallery">
-    <div class="dash-item" onclick="openLightbox('images/dashboard1.png')">
-      <img src="images/dashboard1.png" alt="Dashboard overview" loading="lazy">
-      <div class="caption"><h3>Dashboard Overview</h3><p>Main control panel</p></div>
+
+  <!-- Group 1: Market Overview -->
+  <div class="dash-group">
+    <h3>Market Overview</h3>
+    <p class="desc">Live cross-exchange data feeds the bot's decision engine.</p>
+    <div class="dash-gallery">
+      <div class="dash-item" onclick="openLightbox('images/dashboard1.png')">
+        <img src="images/dashboard1.png" alt="Cross-exchange dashboard" loading="lazy">
+        <div class="caption"><h4>Cross-Exchange Dashboard</h4><p>BTC/HYPE pair overview with liquidations, top movers, and market stats</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard2.png')">
+        <img src="images/dashboard2.png" alt="Cross-exchange spread table" loading="lazy">
+        <div class="caption"><h4>Cross-Exchange Spread Table</h4><p>BTC-PERP prices across Hyperliquid, Paradex, GRVT, Aevo with funding and spread %</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard3.png')">
+        <img src="images/dashboard3.png" alt="Exchange comparison" loading="lazy">
+        <div class="caption"><h4>Exchange Comparison</h4><p>Side-by-side pricing and spread across all connected venues</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard4.png')">
+        <img src="images/dashboard4.png" alt="Funding and liquidity" loading="lazy">
+        <div class="caption"><h4>Funding &amp; Liquidity</h4><p>Live funding rates and top-of-book depth across exchanges</p></div>
+      </div>
     </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard2.png')">
-      <img src="images/dashboard2.png" alt="Positions view" loading="lazy">
-      <div class="caption"><h3>Live Positions</h3><p>Account status and P&L</p></div>
+  </div>
+
+  <!-- Group 2: Execution & Edge -->
+  <div class="dash-group">
+    <h3>Execution &amp; Edge Detection</h3>
+    <p class="desc">The bot scans for executable edges and routes orders in real time.</p>
+    <div class="dash-gallery">
+      <div class="dash-item" onclick="openLightbox('images/dashboard5.png')">
+        <img src="images/dashboard5.png" alt="Best legs and edge" loading="lazy">
+        <div class="caption"><h4>Best Legs &amp; Net Executable Edge</h4><p>Where to buy/sell each leg and the calculated net edge after fees</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard6.png')">
+        <img src="images/dashboard6.png" alt="Live trades" loading="lazy">
+        <div class="caption"><h4>Live Trade Feed</h4><p>Real-time execution log as the bot opens and closes positions</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard7.png')">
+        <img src="images/dashboard7.png" alt="Spread chart" loading="lazy">
+        <div class="caption"><h4>Log Spread Per Exchange</h4><p>Historical spread chart with P&L overlay across venues</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard8.png')">
+        <img src="images/dashboard8.png" alt="Research settings" loading="lazy">
+        <div class="caption"><h4>Research &amp; Backtest Config</h4><p>Perp spread close thresholds and distribution settings for strategy tuning</p></div>
+      </div>
     </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard3.png')">
-      <img src="images/dashboard3.png" alt="Bot status" loading="lazy">
-      <div class="caption"><h3>Bot Status</h3><p>Cycle phase and gate state</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard4.png')">
-      <img src="images/dashboard4.png" alt="Analytics" loading="lazy">
-      <div class="caption"><h3>Analytics</h3><p>Performance metrics</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard5.png')">
-      <img src="images/dashboard5.png" alt="Chart view" loading="lazy">
-      <div class="caption"><h3>Market View</h3><p>Price charts and spread</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard6.png')">
-      <img src="images/dashboard6.png" alt="Trade history" loading="lazy">
-      <div class="caption"><h3>Trade History</h3><p>Cycle log and journal</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard7.png')">
-      <img src="images/dashboard7.png" alt="Risk monitor" loading="lazy">
-      <div class="caption"><h3>Risk Monitor</h3><p>Stop-loss and margin tracking</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard8.png')">
-      <img src="images/dashboard8.png" alt="Recovery view" loading="lazy">
-      <div class="caption"><h3>Recovery &amp; Re-hedge</h3><p>Live rehedge tracking</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard9.png')">
-      <img src="images/dashboard9.png" alt="Account view" loading="lazy">
-      <div class="caption"><h3>Account Detail</h3><p>Per-account breakdown</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard10.png')">
-      <img src="images/dashboard10.png" alt="System status" loading="lazy">
-      <div class="caption"><h3>System Status</h3><p>WebSocket and API health</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard11.png')">
-      <img src="images/dashboard11.png" alt="Cross-exchange view" loading="lazy">
-      <div class="caption"><h3>Cross-Exchange</h3><p>Multi-venue monitoring</p></div>
-    </div>
-    <div class="dash-item" onclick="openLightbox('images/dashboard12.png')">
-      <img src="images/dashboard12.png" alt="Performance" loading="lazy">
-      <div class="caption"><h3>Performance</h3><p>Cumulative results</p></div>
+  </div>
+
+  <!-- Group 3: Research & Backtesting -->
+  <div class="dash-group">
+    <h3>Research &amp; Backtesting</h3>
+    <p class="desc">Every strategy is validated against historical data before going live.</p>
+    <div class="dash-gallery">
+      <div class="dash-item" onclick="openLightbox('images/dashboard9.png')">
+        <img src="images/dashboard9.png" alt="Paper trade backtest" loading="lazy">
+        <div class="caption"><h4>Paper Trade Backtest</h4><p>Equity curve simulation for BTC/HYPE spread strategy</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard10.png')">
+        <img src="images/dashboard10.png" alt="Pair analysis scanner" loading="lazy">
+        <div class="caption"><h4>Pair Analysis Scanner</h4><p>BTC vs HYPE statistical breakdown — correlation, volatility, spread range</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard11.png')">
+        <img src="images/dashboard11.png" alt="Pair scanner rankings" loading="lazy">
+        <div class="caption"><h4>Pair Scanner Rankings</h4><p>Ranked tradable pairs across all assets by edge and liquidity</p></div>
+      </div>
+      <div class="dash-item" onclick="openLightbox('images/dashboard12.png')">
+        <img src="images/dashboard12.png" alt="Cross-exchange arb scanner" loading="lazy">
+        <div class="caption"><h4>Cross-Exchange Arb Scanner</h4><p>Real-time opportunity scanner showing best executable spreads</p></div>
+      </div>
     </div>
   </div>
 </section>
