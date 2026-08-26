@@ -59,6 +59,26 @@
   @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
   .fade-up { animation: fadeUp 0.8s ease-out forwards; }
   .delay-1 { animation-delay: 0.1s; opacity: 0; } .delay-2 { animation-delay: 0.2s; opacity: 0; } .delay-3 { animation-delay: 0.3s; opacity: 0; }
+
+  /* Dashboard gallery */
+  .dash-gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .dash-item {
+    background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+    overflow: hidden; transition: transform 0.2s, border-color 0.2s;
+  }
+  .dash-item:hover { transform: translateY(-4px); border-color: rgba(0,212,255,0.2); }
+  .dash-item img { width: 100%; display: block; }
+  .dash-item .caption { padding: 16px 20px; }
+  .dash-item .caption h3 { font-size: 15px; font-weight: 600; color: #fff; }
+  .dash-item .caption p { font-size: 13px; color: #9CA3AF; }
+
+  /* Lightbox */
+  .lightbox {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200;
+    background: rgba(0,0,0,0.9); justify-content: center; align-items: center; cursor: pointer;
+  }
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 90%; max-height: 90%; border-radius: 12px; }
 </style>
 </head>
 <body>
@@ -110,6 +130,77 @@
     <div class="risk-card"><div class="risk-icon">&#9881;</div><div><h3>Sequential Gating</h3><p>Two bot groups alternate via a gate file. One group opens at a time — no overexposure, API rate limits respected.</p></div></div>
   </div>
 </section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>The Dashboard</h2>
+    <p>Real-time monitoring of every cycle, position, and P&L movement. Here is what the bot looks like in action.</p>
+  </div>
+  <div class="dash-gallery">
+    <div class="dash-item" onclick="openLightbox('images/dashboard1.png')">
+      <img src="images/dashboard1.png" alt="Dashboard overview" loading="lazy">
+      <div class="caption"><h3>Dashboard Overview</h3><p>Main control panel</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard2.png')">
+      <img src="images/dashboard2.png" alt="Positions view" loading="lazy">
+      <div class="caption"><h3>Live Positions</h3><p>Account status and P&L</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard3.png')">
+      <img src="images/dashboard3.png" alt="Bot status" loading="lazy">
+      <div class="caption"><h3>Bot Status</h3><p>Cycle phase and gate state</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard4.png')">
+      <img src="images/dashboard4.png" alt="Analytics" loading="lazy">
+      <div class="caption"><h3>Analytics</h3><p>Performance metrics</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard5.png')">
+      <img src="images/dashboard5.png" alt="Chart view" loading="lazy">
+      <div class="caption"><h3>Market View</h3><p>Price charts and spread</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard6.png')">
+      <img src="images/dashboard6.png" alt="Trade history" loading="lazy">
+      <div class="caption"><h3>Trade History</h3><p>Cycle log and journal</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard7.png')">
+      <img src="images/dashboard7.png" alt="Risk monitor" loading="lazy">
+      <div class="caption"><h3>Risk Monitor</h3><p>Stop-loss and margin tracking</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard8.png')">
+      <img src="images/dashboard8.png" alt="Recovery view" loading="lazy">
+      <div class="caption"><h3>Recovery &amp; Re-hedge</h3><p>Live rehedge tracking</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard9.png')">
+      <img src="images/dashboard9.png" alt="Account view" loading="lazy">
+      <div class="caption"><h3>Account Detail</h3><p>Per-account breakdown</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard10.png')">
+      <img src="images/dashboard10.png" alt="System status" loading="lazy">
+      <div class="caption"><h3>System Status</h3><p>WebSocket and API health</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard11.png')">
+      <img src="images/dashboard11.png" alt="Cross-exchange view" loading="lazy">
+      <div class="caption"><h3>Cross-Exchange</h3><p>Multi-venue monitoring</p></div>
+    </div>
+    <div class="dash-item" onclick="openLightbox('images/dashboard12.png')">
+      <img src="images/dashboard12.png" alt="Performance" loading="lazy">
+      <div class="caption"><h3>Performance</h3><p>Cumulative results</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img src="" id="lightbox-img" alt="Expanded view">
+</div>
+
+<script>
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('active');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+}
+</script>
 
 <footer class="footer"><p>Built by <span>ProCripiq</span> &middot; Automated Trading System</p></footer>
 
