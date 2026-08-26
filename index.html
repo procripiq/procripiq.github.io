@@ -12,11 +12,17 @@
   }
   a { text-decoration: none; color: inherit; }
 
+  /* Particle canvas */
+  #particle-canvas {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
   /* Nav */
   .nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
     padding: 20px 60px; display: flex; justify-content: space-between; align-items: center;
-    background: rgba(10,14,23,0.85); backdrop-filter: blur(12px);
+    background: rgba(10,14,23,0.7); backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(255,255,255,0.06);
   }
   .nav-logo { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
@@ -29,10 +35,7 @@
   .hero {
     min-height: 100vh; display: flex; flex-direction: column;
     justify-content: center; align-items: center; text-align: center;
-    padding: 120px 40px 80px;
-    background: radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 50%, rgba(168,85,247,0.06) 0%, transparent 50%),
-                #0A0E17;
+    padding: 120px 40px 80px; position: relative; z-index: 1;
   }
   .hero-badge {
     display: inline-block; padding: 6px 16px; margin-bottom: 24px;
@@ -40,21 +43,28 @@
     font-size: 12px; font-weight: 600; color: #00D4FF;
     letter-spacing: 1px; text-transform: uppercase; background: rgba(0,212,255,0.05);
   }
-  .hero h1 { font-size: 56px; font-weight: 800; color: #fff; letter-spacing: -1.5px; line-height: 1.1; max-width: 800px; margin-bottom: 24px; }
+  .hero h1 { font-size: 56px; font-weight: 800; color: #fff; letter-spacing: -1.5px; line-height: 1.1; max-width: 800px; margin-bottom: 24px; min-height: 120px; }
   .hero h1 .accent { color: #00D4FF; }
   .hero h1 .accent2 { color: #A855F7; }
+  .hero h1 .cursor { display: inline-block; width: 3px; height: 56px; background: #00D4FF; margin-left: 4px; animation: blink 1s infinite; vertical-align: text-bottom; }
   .hero p { font-size: 20px; color: #9CA3AF; max-width: 600px; margin-bottom: 40px; }
 
   /* Service cards */
+  .section { padding: 100px 60px; max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+  .section-header { text-align: center; margin-bottom: 60px; }
+  .section-header h2 { font-size: 40px; font-weight: 700; color: #fff; letter-spacing: -1px; margin-bottom: 16px; }
+  .section-header p { font-size: 18px; color: #9CA3AF; max-width: 600px; margin: 0 auto; }
+
   .services { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-width: 1200px; margin: 0 auto; }
   .service-card {
-    background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
-    padding: 40px 32px; text-align: center; transition: transform 0.2s, border-color 0.2s;
+    background: rgba(17,24,39,0.8); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+    padding: 40px 32px; text-align: center; transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
     cursor: pointer;
   }
-  .service-card:hover { transform: translateY(-6px); border-color: rgba(0,212,255,0.2); }
-  .service-card.purple:hover { border-color: rgba(168,85,247,0.2); }
-  .service-card.pink:hover { border-color: rgba(236,72,153,0.2); }
+  .service-card:hover { transform: translateY(-8px); border-color: rgba(0,212,255,0.3); box-shadow: 0 20px 40px rgba(0,212,255,0.1); }
+  .service-card.purple:hover { border-color: rgba(168,85,247,0.3); box-shadow: 0 20px 40px rgba(168,85,247,0.1); }
+  .service-card.pink:hover { border-color: rgba(236,72,153,0.3); box-shadow: 0 20px 40px rgba(236,72,153,0.1); }
   .service-icon { width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
   .service-icon.blue { background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.2); }
   .service-icon.purple { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.2); }
@@ -65,37 +75,37 @@
   .service-card.purple .service-link { color: #A855F7; }
   .service-card.pink .service-link { color: #EC4899; }
 
-  /* Section */
-  .section { padding: 100px 60px; max-width: 1200px; margin: 0 auto; }
-  .section-header { text-align: center; margin-bottom: 60px; }
-  .section-header h2 { font-size: 40px; font-weight: 700; color: #fff; letter-spacing: -1px; margin-bottom: 16px; }
-  .section-header p { font-size: 18px; color: #9CA3AF; max-width: 600px; margin: 0 auto; }
-
   /* Footer */
-  .footer { padding: 40px 60px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); background: #080B12; }
+  .footer { padding: 40px 60px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); background: rgba(8,11,18,0.9); position: relative; z-index: 1; }
   .footer p { font-size: 14px; color: #6B7280; }
   .footer p span { color: #00D4FF; font-weight: 600; }
+
+  /* Scroll reveal */
+  .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease-out, transform 0.8s ease-out; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { animation: fadeUp 0.8s ease-out forwards; }
+  .delay-1 { animation-delay: 0.1s; opacity: 0; }
+  .delay-2 { animation-delay: 0.2s; opacity: 0; }
 
   /* Responsive */
   @media (max-width: 900px) {
     .nav { padding: 16px 24px; }
     .nav-links { display: none; }
-    .hero h1 { font-size: 36px; }
+    .hero h1 { font-size: 32px; min-height: 80px; }
+    .hero h1 .cursor { height: 32px; }
     .hero p { font-size: 16px; }
     .section { padding: 60px 24px; }
     .section-header h2 { font-size: 28px; }
     .services { grid-template-columns: repeat(2, 1fr); }
   }
-
-  /* Animations */
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-  .fade-up { animation: fadeUp 0.8s ease-out forwards; }
-  .delay-1 { animation-delay: 0.1s; opacity: 0; }
-  .delay-2 { animation-delay: 0.2s; opacity: 0; }
-  .delay-3 { animation-delay: 0.3s; opacity: 0; }
 </style>
 </head>
 <body>
+
+<canvas id="particle-canvas"></canvas>
 
 <nav class="nav">
   <a href="index.html" class="nav-logo">Pro<span>Cripiq</span></a>
@@ -110,17 +120,17 @@
 
 <section class="hero">
   <div class="hero-badge fade-up">Trading &middot; Design &middot; Events</div>
-  <h1 class="fade-up delay-1">We build <span class="accent">automated trading systems</span>, <span class="accent2">design</span> for nightlife, and run <span class="accent2">events</span>.</h1>
+  <h1 class="fade-up delay-1" id="typewriter"></h1>
   <p class="fade-up delay-2">
     ProCripiq is a multi-disciplinary studio — combining quantitative
     finance, graphic design, and live event production.
   </p>
 </section>
 
-<section class="section">
+<section class="section reveal">
   <div class="section-header">
     <h2>What We Do</h2>
-    <p>Three distinct services, one team.</p>
+    <p>Four distinct services, one team.</p>
   </div>
   <div class="services">
     <a href="trading.html" class="service-card">
@@ -153,6 +163,203 @@
 <footer class="footer">
   <p>Built by <span>ProCripiq</span> &middot; Trading &middot; Design &middot; Events</p>
 </footer>
+
+<script>
+// =========================================================================
+// Particle Network Background
+// =========================================================================
+(function() {
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let mouse = { x: null, y: null };
+  const PARTICLE_COUNT = 80;
+  const CONNECTION_DIST = 140;
+  const MOUSE_DIST = 200;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  window.addEventListener('mousemove', function(e) {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+  });
+  window.addEventListener('mouseout', function() {
+    mouse.x = null;
+    mouse.y = null;
+  });
+
+  class Particle {
+    constructor() {
+      this.x = Math.random() * canvas.width;
+      this.y = Math.random() * canvas.height;
+      this.vx = (Math.random() - 0.5) * 0.5;
+      this.vy = (Math.random() - 0.5) * 0.5;
+      this.size = Math.random() * 2 + 1;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+      if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+
+      // Mouse interaction — particles drift toward cursor
+      if (mouse.x !== null) {
+        const dx = mouse.x - this.x;
+        const dy = mouse.y - this.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MOUSE_DIST) {
+          const force = (MOUSE_DIST - dist) / MOUSE_DIST;
+          this.x += dx / dist * force * 0.8;
+          this.y += dy / dist * force * 0.8;
+        }
+      }
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+      ctx.fill();
+    }
+  }
+
+  function init() {
+    particles = [];
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push(new Particle());
+    }
+  }
+
+  function connect() {
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < CONNECTION_DIST) {
+          const opacity = (1 - dist / CONNECTION_DIST) * 0.3;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = 'rgba(0, 212, 255, ' + opacity + ')';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+      // Connect to mouse
+      if (mouse.x !== null) {
+        const dx = particles[i].x - mouse.x;
+        const dy = particles[i].y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MOUSE_DIST) {
+          const opacity = (1 - dist / MOUSE_DIST) * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(mouse.x, mouse.y);
+          ctx.strokeStyle = 'rgba(0, 212, 255, ' + opacity + ')';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => { p.update(); p.draw(); });
+    connect();
+    requestAnimationFrame(animate);
+  }
+
+  init();
+  animate();
+})();
+
+// =========================================================================
+// Typewriter Headline
+// =========================================================================
+(function() {
+  const el = document.getElementById('typewriter');
+  const phrases = [
+    { html: 'We build <span class="accent">automated trading systems</span>, <span class="accent2">design</span> for nightlife, and run <span class="accent2">events</span>.' },
+  ];
+
+  // Type out the headline character by character
+  // We need to handle HTML tags — type the visible text but keep tags intact
+  const fullHtml = phrases[0].html;
+  const visibleChars = fullHtml.replace(/<[^>]+>/g, '');
+  const tagPositions = [];
+  let searchIdx = 0;
+  // Build a map of tag positions in the visible text
+  let stripped = '';
+  let i = 0;
+  while (i < fullHtml.length) {
+    if (fullHtml[i] === '<') {
+      const end = fullHtml.indexOf('>', i);
+      tagPositions.push({ tag: fullHtml.slice(i, end + 1), pos: stripped.length });
+      i = end + 1;
+    } else {
+      stripped += fullHtml[i];
+      i++;
+    }
+  }
+
+  let charIdx = 0;
+  function type() {
+    if (charIdx <= visibleChars.length) {
+      // Build the HTML up to charIdx visible characters, inserting tags at the right positions
+      let html = '';
+      let visibleCount = 0;
+      let tagIdx = 0;
+      let srcIdx = 0;
+      while (srcIdx < fullHtml.length && visibleCount < charIdx) {
+        if (fullHtml[srcIdx] === '<') {
+          const end = fullHtml.indexOf('>', srcIdx);
+          html += fullHtml.slice(srcIdx, end + 1);
+          srcIdx = end + 1;
+        } else {
+          html += fullHtml[srcIdx];
+          visibleCount++;
+          srcIdx++;
+        }
+      }
+      // Add any tags that should appear at this position
+      while (tagIdx < tagPositions.length && tagPositions[tagIdx].pos <= charIdx) {
+        // Already included above
+        tagIdx++;
+      }
+      // Add cursor
+      html += '<span class="cursor"></span>';
+      el.innerHTML = html;
+      charIdx++;
+      setTimeout(type, 35);
+    } else {
+      // Done typing — cursor keeps blinking via CSS
+      el.innerHTML = fullHtml + '<span class="cursor"></span>';
+    }
+  }
+  setTimeout(type, 600);
+})();
+
+// =========================================================================
+// Scroll Reveal
+// =========================================================================
+(function() {
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+})();
+</script>
 
 </body>
 </html>
