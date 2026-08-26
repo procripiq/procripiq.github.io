@@ -94,38 +94,50 @@
 <section class="hero">
   <div class="hero-badge fade-up">Automated Trading System</div>
   <h1 class="fade-up delay-1">Automated Trading, <span class="accent">Engineered.</span></h1>
-  <p class="fade-up delay-2">A proprietary spread-trading bot that executes cross-account arbitrage on Hyperliquid perpetuals — 24/7, without emotion.</p>
+  <p class="fade-up delay-2">A proprietary spread-trading engine that executes cross-account arbitrage across crypto, stocks, commodities, FX, indices, bonds, pre-IPO, and prediction markets — 24/7, without emotion.</p>
   <div class="hero-stats fade-up delay-3">
     <div class="hero-stat"><div class="num">4</div><div class="label">Legs per Cycle</div></div>
     <div class="hero-stat"><div class="num">2s</div><div class="label">Poll Interval</div></div>
-    <div class="hero-stat"><div class="num">10x</div><div class="label">Max Leverage</div></div>
+    <div class="hero-stat"><div class="num">8+</div><div class="label">Asset Classes</div></div>
     <div class="hero-stat"><div class="num">24/7</div><div class="label">Fully Automated</div></div>
   </div>
 </section>
 
+<!-- Asset Classes -->
+<section class="section" style="padding-top: 40px; padding-bottom: 40px;">
+  <div class="asset-tags" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;">
+    <span class="asset-tag" style="padding: 8px 20px; border-radius: 100px; background: #111827; border: 1px solid rgba(0,212,255,0.15); color: #9CA3AF; font-size: 14px; font-weight: 500;">Crypto</span>
+    <span class="asset-tag" style="padding: 8px 20px; border-radius: 100px; background: #111827; border: 1px solid rgba(0,212,255,0.15); color: #9CA3AF; font-size: 14px; font-weight: 500;">Stocks</span>
+    <span class="asset-tag" style="padding: 8px 20px; border-radius: 100px; background: #111827; border: 1px solid rgba(0,212,255,0.15); color: #9CA3AF; font-size: 14px; font-weight: 500;">Commodities</span>
+    <span class="asset-tag" style="padding: 8px 20px; border-radius: 100px; background: #111827; border: 1px solid rgba(0,212,255,0.15); color: #9CA3AF; font-size: 14px; font-weight: 500;">Indices / ETFs</span>
+    <span class="asset-tag" style="padding: 8px 20px; border-radius: 100px; background: #111827; border: 1px solid rgba(0,212,255,0.15); color: #9CA3AF; font-size: 14px; font-weight: 500;">FX</span>
+    <span class="asset-tag" style="padding: 8px 20px; border-radius: 100px; background: #111827; border: 1px solid rgba(0,212,255,0.15); color: #9CA3AF; font-size: 14px; font-weight: 500;">Bonds</span>
+    <span class="asset-tag" style="padding: 8px 20px; border-radius: 100px; background: #111827; border: 1px solid rgba(0,212,255,0.15); color: #9CA3AF; font-size: 14px; font-weight: 500;">Pre-IPO</span>
+    <span class="asset-tag" style="padding: 8px 20px; border-radius: 100px; background: #111827; border: 1px solid rgba(0,212,255,0.15); color: #9CA3AF; font-size: 14px; font-weight: 500;">Prediction Markets</span>
+  </div>
+</section>
+
 <section class="section">
-  <div class="section-header">
-    <h2>How It Works</h2>
-    <p>The bot runs a market-neutral spread strategy on BTC/HYPE perpetual futures across multiple sub-accounts.</p>
+    <p>The engine runs a market-neutral spread strategy across paired assets in multiple sub-accounts — any market, any venue.</p>
   </div>
   <div class="steps">
-    <div class="step"><div class="step-num">01</div><h3>Hedge Open</h3><p>4 legs opened simultaneously — mirror positions across two accounts. Net market exposure is zero.</p></div>
+    <div class="step"><div class="step-num">01</div><h3>Hedge Open</h3><p>4 legs opened simultaneously — mirror positions across two accounts on paired assets. Net market exposure is zero.</p></div>
     <div class="step"><div class="step-num">02</div><h3>Divergence Detection</h3><p>Both accounts polled every 2 seconds. When the spread diverges enough to cover fees and profit, the winner closes.</p></div>
-    <div class="step"><div class="step-num">03</div><h3>Bank the Winner</h3><p>Winning account market-closed, locking in spread profit. Gate hands turn to the next bot group.</p></div>
-    <div class="step"><div class="step-num">04</div><h3>Recovery &amp; Re-hedge</h3><p>Loser rides back toward breakeven. If it draws down further, the bot re-hedges to bank small profits offsetting the loss.</p></div>
+    <div class="step"><div class="step-num">03</div><h3>Bank the Winner</h3><p>Winning account market-closed, locking in spread profit. Gate hands turn to the next engine group.</p></div>
+    <div class="step"><div class="step-num">04</div><h3>Recovery &amp; Re-hedge</h3><p>Losing side rides back toward breakeven. If it draws down further, the engine re-hedges to bank small profits offsetting the loss.</p></div>
   </div>
 </section>
 
 <section class="section">
   <div class="section-header">
     <h2>Risk Management</h2>
-    <p>Every cycle has defined exit parameters. The bot never holds naked directional risk.</p>
+    <p>Every cycle has defined exit parameters. The engine never holds naked directional risk.</p>
   </div>
   <div class="risk-grid">
-    <div class="risk-card"><div class="risk-icon">&#9878;</div><div><h3>Position Sizing</h3><p>Fixed notional per leg with 10x leverage. Margin kept low relative to equity — stop-loss triggers long before liquidation.</p></div></div>
+    <div class="risk-card"><div class="risk-icon">&#9878;</div><div><h3>Position Sizing</h3><p>Fixed notional per leg with calibrated leverage. Margin kept low relative to equity — stop-loss triggers long before any margin call.</p></div></div>
     <div class="risk-card"><div class="risk-icon">&#9888;</div><div><h3>Hard Stop-Loss</h3><p>Maximum adverse excursion limit per cycle. Position market-closed immediately at stop. No averaging down.</p></div></div>
-    <div class="risk-card"><div class="risk-icon">&#8635;</div><div><h3>Re-hedge Recovery</h3><p>Bot re-opens winning side on further drawdown, banking small profits to offset unrealized loss until recovery.</p></div></div>
-    <div class="risk-card"><div class="risk-icon">&#9881;</div><div><h3>Sequential Gating</h3><p>Two bot groups alternate via a gate file. One group opens at a time — no overexposure, API rate limits respected.</p></div></div>
+    <div class="risk-card"><div class="risk-icon">&#8635;</div><div><h3>Re-hedge Recovery</h3><p>Engine re-opens winning side on further drawdown, banking small profits to offset unrealized loss until recovery.</p></div></div>
+    <div class="risk-card"><div class="risk-icon">&#9881;</div><div><h3>Sequential Gating</h3><p>Two engine groups alternate via a gate file. One group opens at a time — no overexposure, API rate limits respected.</p></div></div>
   </div>
 </section>
 
@@ -139,23 +151,23 @@
   <!-- Group 1: Market Overview -->
   <div class="dash-group">
     <h3>Market Overview</h3>
-    <p class="desc">Live cross-exchange data feeds the bot's decision engine.</p>
+    <p class="desc">Live cross-venue data feeds the engine's decision layer.</p>
     <div class="dash-gallery">
       <div class="dash-item" onclick="openLightbox('images/dashboard1.png')">
-        <img src="images/dashboard1.png" alt="Cross-exchange dashboard" loading="lazy">
-        <div class="caption"><h4>Cross-Exchange Dashboard</h4><p>BTC/HYPE pair overview with liquidations, top movers, and market stats</p></div>
+        <img src="images/dashboard1.png" alt="Cross-venue dashboard" loading="lazy">
+        <div class="caption"><h4>Cross-Venue Dashboard</h4><p>Multi-asset pair overview with liquidations, top movers, and market stats</p></div>
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard2.png')">
-        <img src="images/dashboard2.png" alt="Cross-exchange spread table" loading="lazy">
-        <div class="caption"><h4>Cross-Exchange Spread Table</h4><p>BTC-PERP prices across Hyperliquid, Paradex, GRVT, Aevo with funding and spread %</p></div>
+        <img src="images/dashboard2.png" alt="Cross-venue spread table" loading="lazy">
+        <div class="caption"><h4>Cross-Venue Spread Table</h4><p>Live prices across all connected venues with funding and spread %</p></div>
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard3.png')">
-        <img src="images/dashboard3.png" alt="Exchange comparison" loading="lazy">
-        <div class="caption"><h4>Exchange Comparison</h4><p>Side-by-side pricing and spread across all connected venues</p></div>
+        <img src="images/dashboard3.png" alt="Venue comparison" loading="lazy">
+        <div class="caption"><h4>Venue Comparison</h4><p>Side-by-side pricing and spread across all connected trading venues</p></div>
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard4.png')">
         <img src="images/dashboard4.png" alt="Funding and liquidity" loading="lazy">
-        <div class="caption"><h4>Funding &amp; Liquidity</h4><p>Live funding rates and top-of-book depth across exchanges</p></div>
+        <div class="caption"><h4>Carry &amp; Liquidity</h4><p>Live carry rates and top-of-book depth across venues</p></div>
       </div>
     </div>
   </div>
@@ -163,7 +175,7 @@
   <!-- Group 2: Execution & Edge -->
   <div class="dash-group">
     <h3>Execution &amp; Edge Detection</h3>
-    <p class="desc">The bot scans for executable edges and routes orders in real time.</p>
+    <p class="desc">The engine scans for executable edges and routes orders in real time.</p>
     <div class="dash-gallery">
       <div class="dash-item" onclick="openLightbox('images/dashboard5.png')">
         <img src="images/dashboard5.png" alt="Best legs and edge" loading="lazy">
@@ -171,15 +183,15 @@
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard6.png')">
         <img src="images/dashboard6.png" alt="Live trades" loading="lazy">
-        <div class="caption"><h4>Live Trade Feed</h4><p>Real-time execution log as the bot opens and closes positions</p></div>
+        <div class="caption"><h4>Live Trade Feed</h4><p>Real-time execution log as the engine opens and closes positions</p></div>
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard7.png')">
         <img src="images/dashboard7.png" alt="Spread chart" loading="lazy">
-        <div class="caption"><h4>Log Spread Per Exchange</h4><p>Historical spread chart with P&L overlay across venues</p></div>
+        <div class="caption"><h4>Log Spread Per Venue</h4><p>Historical spread chart with P&L overlay across venues</p></div>
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard8.png')">
         <img src="images/dashboard8.png" alt="Research settings" loading="lazy">
-        <div class="caption"><h4>Research &amp; Backtest Config</h4><p>Perp spread close thresholds and distribution settings for strategy tuning</p></div>
+        <div class="caption"><h4>Research &amp; Backtest Config</h4><p>Spread close thresholds and distribution settings for strategy tuning</p></div>
       </div>
     </div>
   </div>
@@ -191,19 +203,19 @@
     <div class="dash-gallery">
       <div class="dash-item" onclick="openLightbox('images/dashboard9.png')">
         <img src="images/dashboard9.png" alt="Paper trade backtest" loading="lazy">
-        <div class="caption"><h4>Paper Trade Backtest</h4><p>Equity curve simulation for BTC/HYPE spread strategy</p></div>
+        <div class="caption"><h4>Paper Trade Backtest</h4><p>Equity curve simulation for the paired-spread strategy</p></div>
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard10.png')">
         <img src="images/dashboard10.png" alt="Pair analysis scanner" loading="lazy">
-        <div class="caption"><h4>Pair Analysis Scanner</h4><p>BTC vs HYPE statistical breakdown — correlation, volatility, spread range</p></div>
+        <div class="caption"><h4>Pair Analysis Scanner</h4><p>Statistical breakdown of tradable pairs — correlation, volatility, spread range</p></div>
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard11.png')">
         <img src="images/dashboard11.png" alt="Pair scanner rankings" loading="lazy">
-        <div class="caption"><h4>Pair Scanner Rankings</h4><p>Ranked tradable pairs across all assets by edge and liquidity</p></div>
+        <div class="caption"><h4>Pair Scanner Rankings</h4><p>Ranked tradable pairs across all asset classes by edge and liquidity</p></div>
       </div>
       <div class="dash-item" onclick="openLightbox('images/dashboard12.png')">
-        <img src="images/dashboard12.png" alt="Cross-exchange arb scanner" loading="lazy">
-        <div class="caption"><h4>Cross-Exchange Arb Scanner</h4><p>Real-time opportunity scanner showing best executable spreads</p></div>
+        <img src="images/dashboard12.png" alt="Cross-venue arb scanner" loading="lazy">
+        <div class="caption"><h4>Cross-Venue Arb Scanner</h4><p>Real-time opportunity scanner showing best executable spreads</p></div>
       </div>
     </div>
   </div>
