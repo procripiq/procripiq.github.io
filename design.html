@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProCripiq — Design Studio</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #0A0E17; color: #E5E7EB; overflow-x: hidden; line-height: 1.6; }
+  a { text-decoration: none; color: inherit; }
+
+  .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 20px 60px; display: flex; justify-content: space-between; align-items: center; background: rgba(10,14,23,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .nav-logo { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .nav-logo span { color: #A855F7; }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a { color: #9CA3AF; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: #fff; }
+
+  .hero { min-height: 60vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px 40px 60px; background: radial-gradient(ellipse at 50% 0%, rgba(168,85,247,0.1) 0%, transparent 60%), #0A0E17; }
+  .hero-badge { display: inline-block; padding: 6px 16px; margin-bottom: 24px; border: 1px solid rgba(168,85,247,0.3); border-radius: 100px; font-size: 12px; font-weight: 600; color: #A855F7; letter-spacing: 1px; text-transform: uppercase; background: rgba(168,85,247,0.05); }
+  .hero h1 { font-size: 48px; font-weight: 800; color: #fff; letter-spacing: -1.5px; margin-bottom: 24px; }
+  .hero h1 .accent { color: #A855F7; }
+  .hero p { font-size: 20px; color: #9CA3AF; max-width: 600px; }
+
+  .section { padding: 80px 60px; max-width: 1200px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 60px; }
+  .section-header h2 { font-size: 40px; font-weight: 700; color: #fff; letter-spacing: -1px; margin-bottom: 16px; }
+  .section-header p { font-size: 18px; color: #9CA3AF; max-width: 600px; margin: 0 auto; }
+
+  /* Gallery */
+  .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .gallery-item {
+    background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+    overflow: hidden; transition: transform 0.2s, border-color 0.2s;
+  }
+  .gallery-item:hover { transform: translateY(-6px); border-color: rgba(168,85,247,0.3); }
+  .gallery-img {
+    width: 100%; aspect-ratio: 3/4; display: flex; align-items: center; justify-content: center;
+    font-size: 48px; color: #374151;
+  }
+  .gallery-img.g1 { background: linear-gradient(135deg, #1a1a2e, #16213e); }
+  .gallery-img.g2 { background: linear-gradient(135deg, #2d1b4e, #1a1a2e); }
+  .gallery-img.g3 { background: linear-gradient(135deg, #1a1a2e, #0f3460); }
+  .gallery-img.g4 { background: linear-gradient(135deg, #4a1a4a, #2d1b4e); }
+  .gallery-img.g5 { background: linear-gradient(135deg, #0f3460, #1a1a2e); }
+  .gallery-img.g6 { background: linear-gradient(135deg, #2d1b4e, #4a1a4a); }
+  .gallery-info { padding: 20px; }
+  .gallery-info h3 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .gallery-info p { font-size: 13px; color: #9CA3AF; }
+
+  /* Services */
+  .design-services { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 40px; }
+  .design-service { background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 32px; }
+  .design-service h3 { font-size: 18px; font-weight: 600; color: #A855F7; margin-bottom: 8px; }
+  .design-service p { font-size: 14px; color: #9CA3AF; }
+
+  .footer { padding: 40px 60px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); background: #080B12; }
+  .footer p { font-size: 14px; color: #6B7280; }
+  .footer p span { color: #A855F7; font-weight: 600; }
+
+  @media (max-width: 900px) {
+    .nav { padding: 16px 24px; } .nav-links { display: none; }
+    .hero h1 { font-size: 32px; } .hero p { font-size: 16px; }
+    .section { padding: 60px 24px; } .section-header h2 { font-size: 28px; }
+    .gallery { grid-template-columns: 1fr; }
+    .design-services { grid-template-columns: 1fr; }
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { animation: fadeUp 0.8s ease-out forwards; }
+  .delay-1 { animation-delay: 0.1s; opacity: 0; } .delay-2 { animation-delay: 0.2s; opacity: 0; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Pro<span>Cripiq</span></a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="trading.html">Trading</a>
+    <a href="design.html" class="active">Design</a>
+    <a href="events.html">Events</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge fade-up">Design Studio</div>
+  <h1 class="fade-up delay-1">Visual identity for <span class="accent">nightlife culture</span>.</h1>
+  <p class="fade-up delay-2">Poster design, branding, and visual identity for club nights, events, and music culture.</p>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>Recent Work</h2>
+    <p>A selection of poster designs and event visuals. Replace these placeholders with your actual work.</p>
+  </div>
+  <div class="gallery">
+    <div class="gallery-item">
+      <div class="gallery-img g1">&#127912;</div>
+      <div class="gallery-info"><h3>Club Night Poster</h3><p>Event flyer &middot; 2025</p></div>
+    </div>
+    <div class="gallery-item">
+      <div class="gallery-img g2">&#127912;</div>
+      <div class="gallery-info"><h3>GenPop K-Pop Night</h3><p>Event branding &middot; 2025</p></div>
+    </div>
+    <div class="gallery-item">
+      <div class="gallery-img g3">&#127912;</div>
+      <div class="gallery-info"><h3>Nightlife Brand Identity</h3><p>Logo &amp; visual system &middot; 2025</p></div>
+    </div>
+    <div class="gallery-item">
+      <div class="gallery-img g4">&#127912;</div>
+      <div class="gallery-info"><h3>Event Series Poster</h3><p>Print design &middot; 2025</p></div>
+    </div>
+    <div class="gallery-item">
+      <div class="gallery-img g5">&#127912;</div>
+      <div class="gallery-info"><h3>Social Media Kit</h3><p>Digital assets &middot; 2025</p></div>
+    </div>
+    <div class="gallery-item">
+      <div class="gallery-img g6">&#127912;</div>
+      <div class="gallery-info"><h3>Festival Flyer</h3><p>Event promotion &middot; 2025</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>Services</h2>
+    <p>What we can design for you.</p>
+  </div>
+  <div class="design-services">
+    <div class="design-service"><h3>Poster &amp; Flyer Design</h3><p>Eye-catching posters and flyers for club nights, events, and promotions. Print and digital ready.</p></div>
+    <div class="design-service"><h3>Brand Identity</h3><p>Logos, color systems, typography, and visual guidelines for events and nightlife brands.</p></div>
+    <div class="design-service"><h3>Social Media Assets</h3><p>Instagram stories, Facebook event covers, and promotional graphics sized for every platform.</p></div>
+    <div class="design-service"><h3>Event Visuals</h3><p>On-screen visuals, stage backdrops, and motion graphics for live events.</p></div>
+  </div>
+</section>
+
+<footer class="footer"><p>Pro<span>Cripiq</span> Design Studio &middot; Poster &amp; Event Design</p></footer>
+
+</body>
+</html>

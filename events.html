@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProCripiq — GenPop K-Pop Event</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #0A0E17; color: #E5E7EB; overflow-x: hidden; line-height: 1.6; }
+  a { text-decoration: none; color: inherit; }
+
+  .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 20px 60px; display: flex; justify-content: space-between; align-items: center; background: rgba(10,14,23,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .nav-logo { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .nav-logo span { color: #EC4899; }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a { color: #9CA3AF; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: #fff; }
+
+  /* Hero */
+  .hero {
+    min-height: 90vh; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 120px 40px 80px;
+    background: radial-gradient(ellipse at 50% 30%, rgba(236,72,153,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 30% 70%, rgba(168,85,247,0.08) 0%, transparent 50%),
+                #0A0E17;
+  }
+  .hero-badge { display: inline-block; padding: 6px 16px; margin-bottom: 24px; border: 1px solid rgba(236,72,153,0.3); border-radius: 100px; font-size: 12px; font-weight: 600; color: #EC4899; letter-spacing: 1px; text-transform: uppercase; background: rgba(236,72,153,0.05); }
+  .hero h1 { font-size: 64px; font-weight: 800; color: #fff; letter-spacing: -2px; margin-bottom: 16px; }
+  .hero h1 .accent { color: #EC4899; }
+  .hero .subtitle { font-size: 24px; color: #A855F7; font-weight: 600; margin-bottom: 24px; }
+  .hero p { font-size: 18px; color: #9CA3AF; max-width: 500px; margin-bottom: 40px; }
+
+  /* Event details */
+  .event-info { display: flex; gap: 40px; margin-bottom: 40px; flex-wrap: wrap; justify-content: center; }
+  .info-item { text-align: center; }
+  .info-item .icon { font-size: 28px; margin-bottom: 8px; }
+  .info-item .label { font-size: 12px; color: #6B7280; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .info-item .value { font-size: 18px; font-weight: 600; color: #fff; }
+
+  /* CTA button */
+  .cta-btn {
+    display: inline-block; padding: 16px 40px; border-radius: 100px;
+    background: linear-gradient(135deg, #EC4899, #A855F7);
+    color: #fff; font-size: 16px; font-weight: 700; letter-spacing: 0.5px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 32px rgba(236,72,153,0.3);
+  }
+  .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(236,72,153,0.4); }
+
+  /* Section */
+  .section { padding: 100px 60px; max-width: 1000px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 60px; }
+  .section-header h2 { font-size: 40px; font-weight: 700; color: #fff; letter-spacing: -1px; margin-bottom: 16px; }
+  .section-header p { font-size: 18px; color: #9CA3AF; max-width: 600px; margin: 0 auto; }
+
+  /* Lineup */
+  .lineup { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .lineup-card {
+    background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+    padding: 32px; display: flex; align-items: center; gap: 20px;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .lineup-card:hover { transform: translateY(-4px); border-color: rgba(236,72,153,0.2); }
+  .lineup-avatar {
+    width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #EC4899, #A855F7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 700; color: #fff;
+  }
+  .lineup-card h3 { font-size: 18px; font-weight: 600; color: #fff; }
+  .lineup-card p { font-size: 14px; color: #9CA3AF; }
+
+  /* What to expect */
+  .expect-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .expect-card { background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 32px 24px; text-align: center; }
+  .expect-card .icon { font-size: 32px; margin-bottom: 16px; }
+  .expect-card h3 { font-size: 16px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+  .expect-card p { font-size: 14px; color: #9CA3AF; }
+
+  /* Poster placeholder */
+  .poster-placeholder {
+    width: 100%; max-width: 400px; aspect-ratio: 3/4; margin: 0 auto 40px;
+    border-radius: 16px; border: 1px solid rgba(236,72,153,0.2);
+    background: linear-gradient(135deg, #1a1a2e, #2d1b4e, #4a1a4a);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #6B7280; text-align: center;
+  }
+  .poster-placeholder .icon { font-size: 64px; margin-bottom: 16px; }
+  .poster-placeholder p { font-size: 14px; }
+
+  .footer { padding: 40px 60px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); background: #080B12; }
+  .footer p { font-size: 14px; color: #6B7280; }
+  .footer p span { color: #EC4899; font-weight: 600; }
+
+  @media (max-width: 900px) {
+    .nav { padding: 16px 24px; } .nav-links { display: none; }
+    .hero h1 { font-size: 40px; } .hero p { font-size: 16px; }
+    .section { padding: 60px 24px; } .section-header h2 { font-size: 28px; }
+    .lineup { grid-template-columns: 1fr; }
+    .expect-grid { grid-template-columns: 1fr; }
+    .event-info { gap: 24px; }
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { animation: fadeUp 0.8s ease-out forwards; }
+  .delay-1 { animation-delay: 0.1s; opacity: 0; } .delay-2 { animation-delay: 0.2s; opacity: 0; } .delay-3 { animation-delay: 0.3s; opacity: 0; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Pro<span>Cripiq</span></a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="trading.html">Trading</a>
+    <a href="design.html">Design</a>
+    <a href="events.html" class="active">Events</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge fade-up">Next Event</div>
+  <h1 class="fade-up delay-1">Gen<span class="accent">Pop</span></h1>
+  <div class="subtitle fade-up delay-2">K-Pop Club Night</div>
+  <p class="fade-up delay-3">The ultimate K-pop club experience. Music, dancing, and culture — all night long.</p>
+
+  <div class="event-info fade-up delay-3">
+    <div class="info-item">
+      <div class="icon">&#128197;</div>
+      <div class="label">Date</div>
+      <div class="value">TBA</div>
+    </div>
+    <div class="info-item">
+      <div class="icon">&#128205;</div>
+      <div class="label">Venue</div>
+      <div class="value">TBA</div>
+    </div>
+    <div class="info-item">
+      <div class="icon">&#128336;</div>
+      <div class="label">Time</div>
+      <div class="value">TBA</div>
+    </div>
+    <div class="info-item">
+      <div class="icon">&#127915;</div>
+      <div class="label">Tickets</div>
+      <div class="value">TBA</div>
+    </div>
+  </div>
+
+  <a href="#" class="cta-btn fade-up delay-3">Get Tickets</a>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>The Lineup</h2>
+    <p>DJs and performers bringing the K-pop energy all night.</p>
+  </div>
+  <div class="lineup">
+    <div class="lineup-card"><div class="lineup-avatar">DJ</div><div><h3>DJ TBA</h3><p>K-Pop &middot; Open set</p></div></div>
+    <div class="lineup-card"><div class="lineup-avatar">DJ</div><div><h3>DJ TBA</h3><p>K-Pop &middot; Main set</p></div></div>
+    <div class="lineup-card"><div class="lineup-avatar">DJ</div><div><h3>DJ TBA</h3><p>K-Pop &middot; Closing set</p></div></div>
+    <div class="lineup-card"><div class="lineup-avatar">&#127908;</div><div><h3>Special Guest</h3><p>Performance &middot; TBA</p></div></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>What To Expect</h2>
+    <p>More than just a club night — a full K-pop experience.</p>
+  </div>
+  <div class="expect-grid">
+    <div class="expect-card"><div class="icon">&#127925;</div><h3>K-Pop All Night</h3><p>From BTS to NewJeans — the biggest hits and deepest cuts, all night long.</p></div>
+    <div class="expect-card"><div class="icon">&#128131;</div><h3>Dance Circle</h3><p>Open dance floor with K-pop choreography sessions and random play dance.</p></div>
+    <div class="expect-card"><div class="icon">&#127881;</div><h3>Community</h3><p>Meet fellow K-pop fans, swap photocards, and celebrate the culture together.</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>Event Poster</h2>
+    <p>Official GenPop flyer — coming soon.</p>
+  </div>
+  <div class="poster-placeholder">
+    <div class="icon">&#127912;</div>
+    <p>Poster design in progress<br>Check back soon</p>
+  </div>
+</section>
+
+<footer class="footer"><p>Gen<span>Pop</span> &middot; K-Pop Club Night by ProCripiq</p></footer>
+
+</body>
+</html>
