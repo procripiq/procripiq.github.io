@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProCripiq — Automated Trading, Engineered.</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0A0E17;
+    color: #E5E7EB;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ---- Nav ---- */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    padding: 20px 60px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(10, 14, 23, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .nav-logo {
+    font-size: 20px; font-weight: 700; color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .nav-logo span { color: #00D4FF; }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a {
+    color: #9CA3AF; text-decoration: none; font-size: 14px; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #fff; }
+
+  /* ---- Hero ---- */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center;
+    padding: 120px 40px 80px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(16,185,129,0.05) 0%, transparent 50%),
+                #0A0E17;
+  }
+  .hero-badge {
+    display: inline-block; padding: 6px 16px; margin-bottom: 24px;
+    border: 1px solid rgba(0,212,255,0.3); border-radius: 100px;
+    font-size: 12px; font-weight: 600; color: #00D4FF;
+    letter-spacing: 1px; text-transform: uppercase;
+    background: rgba(0,212,255,0.05);
+  }
+  .hero h1 {
+    font-size: 56px; font-weight: 800; color: #fff;
+    letter-spacing: -1.5px; line-height: 1.1; max-width: 800px;
+    margin-bottom: 24px;
+  }
+  .hero h1 .accent { color: #00D4FF; }
+  .hero p {
+    font-size: 20px; color: #9CA3AF; max-width: 600px;
+    margin-bottom: 40px;
+  }
+  .hero-stats {
+    display: flex; gap: 60px; margin-top: 20px;
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat .num {
+    font-size: 36px; font-weight: 700; color: #fff;
+  }
+  .hero-stat .label {
+    font-size: 13px; color: #6B7280; text-transform: uppercase;
+    letter-spacing: 1px; margin-top: 4px;
+  }
+
+  /* ---- Section base ---- */
+  .section {
+    padding: 100px 60px; max-width: 1200px; margin: 0 auto;
+  }
+  .section-header { text-align: center; margin-bottom: 60px; }
+  .section-header h2 {
+    font-size: 40px; font-weight: 700; color: #fff;
+    letter-spacing: -1px; margin-bottom: 16px;
+  }
+  .section-header p {
+    font-size: 18px; color: #9CA3AF; max-width: 600px; margin: 0 auto;
+  }
+
+  /* ---- How it works ---- */
+  .steps {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+  }
+  .step {
+    background: #111827; border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 32px 24px;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .step:hover {
+    transform: translateY(-4px); border-color: rgba(0,212,255,0.2);
+  }
+  .step-num {
+    font-size: 32px; font-weight: 800; color: #00D4FF;
+    margin-bottom: 16px;
+  }
+  .step h3 {
+    font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 12px;
+  }
+  .step p {
+    font-size: 14px; color: #9CA3AF; line-height: 1.6;
+  }
+
+  /* ---- Risk management ---- */
+  .risk-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;
+  }
+  .risk-card {
+    background: #111827; border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 32px;
+    display: flex; gap: 20px;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .risk-card:hover {
+    transform: translateY(-4px); border-color: rgba(16,185,129,0.2);
+  }
+  .risk-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .risk-card h3 {
+    font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 8px;
+  }
+  .risk-card p {
+    font-size: 14px; color: #9CA3AF; line-height: 1.6;
+  }
+
+  /* ---- Footer ---- */
+  .footer {
+    padding: 40px 60px; text-align: center;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: #080B12;
+  }
+  .footer p {
+    font-size: 14px; color: #6B7280;
+  }
+  .footer p span { color: #00D4FF; font-weight: 600; }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 900px) {
+    .nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    .hero h1 { font-size: 36px; }
+    .hero p { font-size: 16px; }
+    .hero-stats { flex-direction: column; gap: 24px; }
+    .section { padding: 60px 24px; }
+    .section-header h2 { font-size: 28px; }
+    .steps { grid-template-columns: 1fr; }
+    .risk-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ---- Animations ---- */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.8s ease-out forwards; }
+  .delay-1 { animation-delay: 0.1s; opacity: 0; }
+  .delay-2 { animation-delay: 0.2s; opacity: 0; }
+  .delay-3 { animation-delay: 0.3s; opacity: 0; }
+  .delay-4 { animation-delay: 0.4s; opacity: 0; }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-logo">Pro<span>Cripiq</span></div>
+  <div class="nav-links">
+    <a href="#how">How It Works</a>
+    <a href="#risk">Risk Management</a>
+    <a href="#contact">Contact</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge fade-up">Automated Trading System</div>
+  <h1 class="fade-up delay-1">Automated Trading, <span class="accent">Engineered.</span></h1>
+  <p class="fade-up delay-2">
+    A proprietary spread-trading bot that executes cross-account
+    arbitrage on Hyperliquid perpetuals — 24/7, without emotion.
+  </p>
+  <div class="hero-stats fade-up delay-3">
+    <div class="hero-stat">
+      <div class="num">4</div>
+      <div class="label">Legs per Cycle</div>
+    </div>
+    <div class="hero-stat">
+      <div class="num">2s</div>
+      <div class="label">Poll Interval</div>
+    </div>
+    <div class="hero-stat">
+      <div class="num">10x</div>
+      <div class="label">Max Leverage</div>
+    </div>
+    <div class="hero-stat">
+      <div class="num">24/7</div>
+      <div class="label">Fully Automated</div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section class="section" id="how">
+  <div class="section-header">
+    <h2>How It Works</h2>
+    <p>
+      The bot runs a market-neutral spread strategy on BTC/HYPE
+      perpetual futures across multiple sub-accounts. Here is the
+      cycle, step by step.
+    </p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h3>Hedge Open</h3>
+      <p>
+        The bot opens 4 legs simultaneously — long BTC + short HYPE on
+        account A, short BTC + long HYPE on account B. The positions
+        are mirror images, so the net market exposure is zero.
+      </p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h3>Divergence Detection</h3>
+      <p>
+        The bot polls both accounts every 2 seconds, tracking the P&L
+        of each side. When the spread diverges enough to cover fees and
+        lock in profit, the winning side is closed.
+      </p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h3>Bank the Winner</h3>
+      <p>
+        The winning account is market-closed, locking in the spread
+        profit. The gate then hands the turn to the next bot group
+        so both groups alternate cycles.
+      </p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <h3>Recovery &amp; Re-hedge</h3>
+      <p>
+        The losing side rides back toward breakeven. If it draws down
+        further, the bot re-opens the winning side as a recovery hedge —
+        banking small profits to offset the loss until the original
+        position recovers or hits the stop.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Risk Management -->
+<section class="section" id="risk">
+  <div class="section-header">
+    <h2>Risk Management</h2>
+    <p>
+      Every cycle has defined exit parameters. The bot never holds
+      naked directional risk — every position is hedged.
+    </p>
+  </div>
+  <div class="risk-grid">
+    <div class="risk-card">
+      <div class="risk-icon">&#9878;</div>
+      <div>
+        <h3>Position Sizing</h3>
+        <p>
+          Each leg is sized at a fixed notional with 10x leverage.
+          Margin per account is kept low relative to equity, ensuring
+          the stop-loss triggers long before any liquidation risk.
+        </p>
+      </div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-icon">&#9888;</div>
+      <div>
+        <h3>Hard Stop-Loss</h3>
+        <p>
+          Every cycle has a maximum adverse excursion limit. If the
+          losing side reaches the stop, the bot market-closes the
+          entire position immediately. No averaging down, no hoping.
+        </p>
+      </div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-icon">&#8635;</div>
+      <div>
+        <h3>Re-hedge Recovery</h3>
+        <p>
+          Instead of accepting the full loss, the bot re-opens the
+          winning side when the loser draws down further. Each re-hedge
+          banks a small profit, gradually offsetting the unrealized loss
+          until the original position recovers.
+        </p>
+      </div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-icon">&#9881;</div>
+      <div>
+        <h3>Sequential Gating</h3>
+        <p>
+          Two bot groups (AB and CD) alternate via a gate file. Only
+          one group opens a new cycle at a time, preventing overexposure
+          and keeping API usage within rate limits.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer" id="contact">
+  <p>Built by <span>ProCripiq</span> &middot; Automated Trading System</p>
+</footer>
+
+<script>
+  // Smooth scroll for nav links
+  document.querySelectorAll('.nav-links a').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // Fade-in on scroll
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.step, .risk-card').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(30px)';
+    el.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>
