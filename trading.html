@@ -187,7 +187,7 @@
     <div class="stat-card"><div class="num" id="st-trades">–</div><div class="label">Trades 24h</div></div>
     <div class="stat-card"><div class="num" id="st-pnl">–</div><div class="label">24h PnL</div></div>
     <div class="stat-card"><div class="num" id="st-win">–</div><div class="label">Win Rate 24h</div></div>
-    <div class="stat-card"><div class="num" id="st-eq">–</div><div class="label">Fleet Equity Δ</div></div>
+    <div class="stat-card"><div class="num" id="st-eq">–</div><div class="label">Net PnL Total</div></div>
   </div>
 </section>
 
@@ -212,7 +212,7 @@
 <section class="section" style="padding-top: 0;">
   <div class="section-header">
     <h2>Fleet Equity</h2>
-    <p>Mean equity change vs. first-seen baseline, sampled every 5 minutes (7-day window).</p>
+    <p>Mean equity change vs. first-seen baseline, adjusted for deposits/withdrawals — sampled every 5 minutes (7-day window).</p>
   </div>
   <div class="chart-wrap" id="chart-wrap">
     <div class="chart-empty">loading…</div>
@@ -273,8 +273,8 @@
       f.win_rate_24h != null ? (f.win_rate_24h * 100).toFixed(1) + '%' : '–';
 
     var eq = document.getElementById('st-eq');
-    eq.textContent = fmtPct(f.equity_pct_mean, 2);
-    eq.className = 'num' + (f.equity_pct_mean > 0 ? ' pos' : (f.equity_pct_mean < 0 ? ' neg' : ''));
+    eq.textContent = fmtPct(f.pnl_pct_mean, 2);
+    eq.className = 'num' + (f.pnl_pct_mean > 0 ? ' pos' : (f.pnl_pct_mean < 0 ? ' neg' : ''));
   }
 
   function renderFleet(nodes, hotBot) {
@@ -291,8 +291,9 @@
         html += '<div class="tile-top">';
         html += '<span class="sdot ' + (stale ? 'stale' : 'live') + '"></span>';
         html += '<span class="tile-id">' + esc(b.id) + '</span>';
-        var eqCls = b.equity_pct > 0 ? 'pos' : (b.equity_pct < 0 ? 'neg' : '');
-        html += '<span class="tile-eq ' + eqCls + '">' + fmtPct(b.equity_pct, 2) + '</span>';
+        var pnlV = (b.pnl_pct !== null && b.pnl_pct !== undefined) ? b.pnl_pct : b.equity_pct;
+        var eqCls = pnlV > 0 ? 'pos' : (pnlV < 0 ? 'neg' : '');
+        html += '<span class="tile-eq ' + eqCls + '">' + fmtPct(pnlV, 2) + '</span>';
         html += '</div>';
         if (stale) {
           html += '<div class="tile-status"><span class="stale-tag">STALE</span> — last known</div>';
