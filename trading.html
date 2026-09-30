@@ -278,9 +278,8 @@
     eq.className = 'num' + (f.pnl_pct_mean > 0 ? ' pos' : (f.pnl_pct_mean < 0 ? ' neg' : ''));
 
     var ann = document.getElementById('st-eq-ann');
-    if (f.pnl_pct_ann != null && f.days_live != null) {
-      ann.textContent = '≈ ' + fmtPct(f.pnl_pct_ann, 0) + '/yr · ' +
-        Math.round(f.days_live) + 'd live';
+    if (f.pnl_pct_ann != null) {
+      ann.textContent = '≈ ' + fmtPct(f.pnl_pct_ann, 0) + '/yr';
     } else { ann.textContent = ''; }
   }
 
