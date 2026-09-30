@@ -63,6 +63,27 @@
   .stat-card .num.neg { color: #F87171; }
   .stat-card .label { font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: 1.2px; margin-top: 6px; }
   .stat-card .sub { font-size: 11px; color: #6B7280; margin-top: 3px; min-height: 13px; }
+  .tile { cursor: pointer; }
+  .chart-wrap { cursor: zoom-in; }
+  .modal { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); padding: 16px; }
+  .modal.open { display: flex; align-items: center; justify-content: center; }
+  .modal-card { background: #0d1117; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 20px; width: 100%; max-width: 420px; max-height: 80vh; overflow-y: auto; }
+  .modal-card.wide { max-width: 900px; }
+  .modal-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+  .modal-head h3 { margin: 0; font-size: 18px; color: #fff; }
+  .modal-close { background: none; border: none; color: #6B7280; font-size: 22px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .modal-close:hover { color: #fff; }
+  .modal-sub { font-size: 12px; color: #6B7280; margin-bottom: 12px; }
+  .trade-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+  .trade-row .ts { color: #6B7280; width: 52px; }
+  .trade-row .sd { color: #D1D5DB; flex: 1; }
+  .trade-row .pc.pos { color: #10B981; }
+  .trade-row .pc.neg { color: #F87171; }
+  .trade-empty { color: #6B7280; font-size: 13px; padding: 12px 0; }
+  @media (max-width: 640px) {
+    .modal { padding: 0; align-items: flex-end; }
+    .modal-card { max-width: none; border-radius: 14px 14px 0 0; max-height: 75vh; }
+  }
 
   /* Fleet grid */
   .fleet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -225,6 +246,13 @@
   <a href="mailto:procripiq@proton.me" class="contact-btn">procripiq@proton.me</a>
 </section>
 
+<div class="modal" id="modal">
+  <div class="modal-card" id="modal-card">
+    <div class="modal-head"><h3 id="modal-title"></h3><button class="modal-close" id="modal-close" aria-label="close">&times;</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
 <footer class="footer">
   <p class="disclaimer">Public telemetry is sanitized and delayed. Historical performance ≠ future results. Not investment advice.</p>
   <p>Built by <span>ProCripiq</span> &middot; Trading &middot; Design &middot; Events</p>
@@ -236,6 +264,7 @@
   var FLEET_URL = 'https://raw.githubusercontent.com/procripiq/procripiq.github.io/live-data/fleet.json';
   var SERIES_URL = 'https://raw.githubusercontent.com/procripiq/procripiq.github.io/live-data/series.json';
   var POLL_MS = 30000;
+  var lastFleet = null;
 
   function fmtPct(v, digits) {
     if (v === null || v === undefined || isNaN(v)) return '—';
@@ -405,6 +434,59 @@
     wrap.innerHTML = svg;
   }
 
+  var modal = document.getElementById('modal');
+  var modalCard = document.getElementById('modal-card');
+  var modalTitle = document.getElementById('modal-title');
+  var modalBody = document.getElementById('modal-body');
+  function openModal(title, html, wide) {
+    modalTitle.textContent = title;
+    modalBody.innerHTML = html;
+    modalCard.className = 'modal-card' + (wide ? ' wide' : '');
+    modal.classList.add('open');
+  }
+  function closeModal() { modal.classList.remove('open'); }
+  document.getElementById('modal-close').onclick = closeModal;
+  modal.onclick = function(e) { if (e.target === modal) closeModal(); };
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  document.getElementById('fleet-grid').addEventListener('click', function(e) {
+    var tile = e.target.closest('.tile');
+    if (!tile || !lastFleet) return;
+    var id = tile.getAttribute('data-bot');
+    var bot = null;
+    (lastFleet.nodes || []).forEach(function(n) {
+      (n.bots || []).forEach(function(b) { if (b.id === id) bot = b; });
+    });
+    if (!bot) return;
+    var pnlV = (bot.pnl_pct !== null && bot.pnl_pct !== undefined) ? bot.pnl_pct : bot.equity_pct;
+    var html = '<div class="modal-sub">net realized ' + fmtPct(pnlV, 2);
+    if (bot.pos && bot.pos.side) {
+      html += ' · open ' + esc(bot.pos.side) + ' ' + fmtHold(bot.pos.hold_min) +
+              ' ' + fmtPct(bot.pos.upnl_pct, 1);
+    }
+    html += '</div>';
+    var tr = bot.trades || [];
+    if (!tr.length) {
+      html += '<div class="trade-empty">no closes yet — this bot is still early</div>';
+    } else {
+      tr.forEach(function(t) {
+        var cls = t.pct >= 0 ? 'pos' : 'neg';
+        html += '<div class="trade-row"><span class="ts">' + hhmmUTC(t.t) + '</span>' +
+                '<span class="sd">closed ' + esc(t.side) + '</span>' +
+                '<span class="pc ' + cls + '">' + fmtPct(t.pct, 2) + '</span></div>';
+      });
+    }
+    openModal(id, html, false);
+  });
+
+  document.getElementById('chart-wrap').addEventListener('click', function() {
+    var svg = document.getElementById('chart-wrap').innerHTML;
+    if (!svg || svg.indexOf('<svg') === -1) return;
+    openModal('Fleet Equity — 7d', svg, true);
+  });
+
   function setStatus(ok, msg) {
     var el = document.getElementById('feed-status');
     el.className = 'feed-status' + (ok ? '' : ' err');
@@ -424,6 +506,7 @@
 
     Promise.all([fleetP, seriesP]).then(function(res) {
       var data = res[0], series = res[1];
+      lastFleet = data;
       var f = data.fleet || {};
       renderStats(f);
       var hot = (data.tape && data.tape.length) ? data.tape[0].bot : null;
