@@ -62,6 +62,7 @@
   .stat-card .num.pos { color: #10B981; }
   .stat-card .num.neg { color: #F87171; }
   .stat-card .label { font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: 1.2px; margin-top: 6px; }
+  .stat-card .sub { font-size: 11px; color: #6B7280; margin-top: 3px; min-height: 13px; }
 
   /* Fleet grid */
   .fleet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -187,7 +188,7 @@
     <div class="stat-card"><div class="num" id="st-trades">–</div><div class="label">Trades 24h</div></div>
     <div class="stat-card"><div class="num" id="st-pnl">–</div><div class="label">24h PnL</div></div>
     <div class="stat-card"><div class="num" id="st-win">–</div><div class="label">Win Rate 24h</div></div>
-    <div class="stat-card"><div class="num" id="st-eq">–</div><div class="label">Net PnL Total</div></div>
+    <div class="stat-card"><div class="num" id="st-eq">–</div><div class="label">Net PnL Total</div><div class="sub" id="st-eq-ann"></div></div>
   </div>
 </section>
 
@@ -275,6 +276,12 @@
     var eq = document.getElementById('st-eq');
     eq.textContent = fmtPct(f.pnl_pct_mean, 2);
     eq.className = 'num' + (f.pnl_pct_mean > 0 ? ' pos' : (f.pnl_pct_mean < 0 ? ' neg' : ''));
+
+    var ann = document.getElementById('st-eq-ann');
+    if (f.pnl_pct_ann != null && f.days_live != null) {
+      ann.textContent = '≈ ' + fmtPct(f.pnl_pct_ann, 0) + '/yr · ' +
+        Math.round(f.days_live) + 'd live';
+    } else { ann.textContent = ''; }
   }
 
   function renderFleet(nodes, hotBot) {
