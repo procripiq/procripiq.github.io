@@ -265,6 +265,7 @@
   var SERIES_URL = 'https://raw.githubusercontent.com/procripiq/procripiq.github.io/live-data/series.json';
   var POLL_MS = 30000;
   var lastFleet = null;
+  var lastSeries = null;
 
   function fmtPct(v, digits) {
     if (v === null || v === undefined || isNaN(v)) return '—';
@@ -512,7 +513,10 @@
       var hot = (data.tape && data.tape.length) ? data.tape[0].bot : null;
       renderFleet(data.nodes, hot);
       renderTape(data.tape);
-      renderChart(series);
+      // A transient fetch/CDN failure returns []; keep the last good
+      // curve instead of blanking back to "accumulating data".
+      if (series.length >= 2) lastSeries = series;
+      renderChart(lastSeries || series);
       var gen = data.generated_at_utc ? new Date(data.generated_at_utc) : null;
       setStatus(true, 'generated ' + (gen && !isNaN(gen) ? gen.toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : 'unknown') +
         ' · ' + (data.delay_note || 'delayed') + ' · refreshing every 30s');
