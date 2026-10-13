@@ -261,8 +261,10 @@
 
 <script>
 (function() {
-  var FLEET_URL = 'https://raw.githubusercontent.com/procripiq/procripiq.github.io/live-data/fleet.json';
-  var SERIES_URL = 'https://raw.githubusercontent.com/procripiq/procripiq.github.io/live-data/series.json';
+  // jsDelivr — the publisher purges these right after each push, so data
+  // lands in seconds rather than waiting on the raw.githubusercontent TTL.
+  var FLEET_URL = 'https://cdn.jsdelivr.net/gh/procripiq/procripiq.github.io@live-data/fleet.json';
+  var SERIES_URL = 'https://cdn.jsdelivr.net/gh/procripiq/procripiq.github.io@live-data/series.json';
   var POLL_MS = 30000;
   var lastFleet = null;
   var lastSeries = null;
@@ -272,11 +274,6 @@
     var d = (digits === undefined) ? 2 : digits;
     var s = Number(v).toFixed(d).replace('-', '−');
     return (v >= 0 ? '+' : '') + s + '%';
-  }
-  function fmtHold(min) {
-    if (min === null || min === undefined) return '';
-    if (min < 60) return min + 'm';
-    return Math.floor(min / 60) + 'h' + (min % 60) + 'm';
   }
   function hhmmUTC(iso) {
     var d = new Date(iso);
@@ -335,8 +332,7 @@
           html += '<div class="tile-status"><span class="stale-tag">STALE</span> — last known</div>';
         } else if (b.pos && b.pos.side) {
           var sideCls = b.pos.side === 'LONG' ? 'long' : 'short';
-          html += '<div class="tile-status"><span class="' + sideCls + '">' + esc(b.pos.side) + '</span>' +
-                  ' · ' + fmtHold(b.pos.hold_min) + ' · ' + fmtPct(b.pos.upnl_pct, 1) + '</div>';
+          html += '<div class="tile-status"><span class="' + sideCls + '">' + esc(b.pos.side) + '</span> — open</div>';
         } else {
           html += '<div class="tile-status">FLAT — watching</div>';
         }
@@ -464,8 +460,7 @@
     var pnlV = (bot.pnl_pct !== null && bot.pnl_pct !== undefined) ? bot.pnl_pct : bot.equity_pct;
     var html = '<div class="modal-sub">net realized ' + fmtPct(pnlV, 2);
     if (bot.pos && bot.pos.side) {
-      html += ' · open ' + esc(bot.pos.side) + ' ' + fmtHold(bot.pos.hold_min) +
-              ' ' + fmtPct(bot.pos.upnl_pct, 1);
+      html += ' · open ' + esc(bot.pos.side);
     }
     html += '</div>';
     var tr = bot.trades || [];
