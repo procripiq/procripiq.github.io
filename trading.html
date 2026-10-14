@@ -263,8 +263,38 @@
 (function() {
   // jsDelivr — the publisher purges these right after each push, so data
   // lands in seconds rather than waiting on the raw.githubusercontent TTL.
-  var FLEET_URL = 'https://cdn.jsdelivr.net/gh/procripiq/procripiq.github.io@live-data/fleet.json';
-  var SERIES_URL = 'https://cdn.jsdelivr.net/gh/procripiq/procripiq.github.io@live-data/series.json';
+  // primary CDN first, raw GitHub as fallback — jsDelivr edge flaps
+  // must not blank the page while the data itself is fresh
+  var FLEET_URLS = [
+    'https://cdn.jsdelivr.net/gh/procripiq/procripiq.github.io@live-data/fleet.json',
+    'https://raw.githubusercontent.com/procripiq/procripiq.github.io/live-data/fleet.json'
+  ];
+  var SERIES_URLS = [
+    'https://cdn.jsdelivr.net/gh/procripiq/procripiq.github.io@live-data/series.json',
+    'https://raw.githubusercontent.com/procripiq/procripiq.github.io/live-data/series.json'
+  ];
+  var SRC_NAMES = ['cdn', 'github-raw'];
+
+  function fetchJson(urls, timeoutMs) {
+    var i = 0;
+    function attempt() {
+      if (i >= urls.length) return Promise.reject(new Error('all sources failed'));
+      var url = urls[i++];
+      var ctrl = ('AbortController' in window) ? new AbortController() : null;
+      var t = ctrl ? setTimeout(function() { ctrl.abort(); }, timeoutMs) : null;
+      return fetch(url + '?cb=' + Date.now(), ctrl ? { signal: ctrl.signal } : {})
+        .then(function(r) {
+          if (t) clearTimeout(t);
+          if (!r.ok) throw new Error('http ' + r.status);
+          return r.json().then(function(j) { return { data: j, src: i - 1 }; });
+        })
+        .catch(function() {
+          if (t) clearTimeout(t);
+          return attempt();
+        });
+    }
+    return attempt();
+  }
   var POLL_MS = 30000;
   var lastFleet = null;
   var lastSeries = null;
@@ -490,18 +520,14 @@
   }
 
   function refresh() {
-    var cb = '?cb=' + Date.now();
-    var fleetP = fetch(FLEET_URL + cb).then(function(r) {
-      if (!r.ok) throw new Error('http ' + r.status);
-      return r.json();
-    });
-    var seriesP = fetch(SERIES_URL + cb).then(function(r) {
-      if (!r.ok) return [];
-      return r.json();
-    }).catch(function() { return []; });
+    var fleetP = fetchJson(FLEET_URLS, 10000);
+    var seriesP = fetchJson(SERIES_URLS, 10000)
+      .then(function(res) { return res.data; })
+      .catch(function() { return []; });
 
     Promise.all([fleetP, seriesP]).then(function(res) {
-      var data = res[0], series = res[1];
+      var data = res[0].data, series = res[1];
+      var src = res[0].src;
       lastFleet = data;
       var f = data.fleet || {};
       renderStats(f);
@@ -514,7 +540,8 @@
       renderChart(lastSeries || series);
       var gen = data.generated_at_utc ? new Date(data.generated_at_utc) : null;
       setStatus(true, 'generated ' + (gen && !isNaN(gen) ? gen.toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : 'unknown') +
-        ' · ' + (data.delay_note || 'delayed') + ' · refreshing every 30s');
+        ' · ' + (data.delay_note || 'delayed') + ' · via ' + SRC_NAMES[src] +
+        (src > 0 ? ' (cdn down)' : '') + ' · refreshing every 30s');
     }).catch(function(e) {
       setStatus(false, 'telemetry unavailable — retrying');
     });
