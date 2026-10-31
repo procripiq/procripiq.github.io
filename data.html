@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProCripiq — Market Data</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #0A0E17; color: #E5E7EB; overflow-x: hidden; line-height: 1.6; }
+  a { text-decoration: none; color: inherit; }
+
+  .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 20px 60px; display: flex; justify-content: space-between; align-items: center; background: rgba(10,14,23,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .nav-logo { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .nav-logo span { color: #00D4FF; }
+  .nav-links { display: flex; gap: 32px; }
+  .nav-links a { color: #9CA3AF; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: #fff; }
+
+  .hero { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 160px 40px 80px; background: radial-gradient(ellipse at 50% 0%, rgba(0,212,255,0.08) 0%, transparent 60%), #0A0E17; }
+  .hero-badge { display: inline-block; padding: 6px 16px; margin-bottom: 24px; border: 1px solid rgba(0,212,255,0.3); border-radius: 100px; font-size: 12px; font-weight: 600; color: #00D4FF; letter-spacing: 1px; text-transform: uppercase; background: rgba(0,212,255,0.05); }
+  .hero h1 { font-size: 48px; font-weight: 800; color: #fff; letter-spacing: -1.5px; line-height: 1.1; max-width: 700px; margin-bottom: 24px; }
+  .hero h1 .accent { color: #00D4FF; }
+  .hero p { font-size: 20px; color: #9CA3AF; max-width: 640px; }
+  .hero-stats { display: flex; gap: 60px; margin-top: 40px; }
+  .hero-stat { text-align: center; }
+  .hero-stat .num { font-size: 36px; font-weight: 700; color: #fff; }
+  .hero-stat .label { font-size: 13px; color: #6B7280; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+  .section { padding: 80px 60px; max-width: 1200px; margin: 0 auto; }
+  .section-header { text-align: center; margin-bottom: 60px; }
+  .section-header h2 { font-size: 36px; font-weight: 700; color: #fff; letter-spacing: -1px; margin-bottom: 16px; }
+  .section-header p { font-size: 17px; color: #9CA3AF; max-width: 640px; margin: 0 auto; }
+
+  .dl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .dl-card { background: #111827; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 32px; display: flex; flex-direction: column; transition: transform 0.2s, border-color 0.2s; }
+  .dl-card:hover { transform: translateY(-4px); border-color: rgba(0,212,255,0.2); }
+  .dl-card h3 { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .dl-card .file { font-size: 13px; color: #00D4FF; font-family: monospace; margin-bottom: 16px; }
+  .dl-card p { font-size: 14px; color: #9CA3AF; margin-bottom: 16px; flex: 1; }
+  .dl-meta { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .dl-meta span { font-size: 12px; color: #6B7280; background: rgba(255,255,255,0.04); padding: 4px 10px; border-radius: 6px; }
+  .dl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3); border-radius: 10px; color: #00D4FF; font-size: 14px; font-weight: 600; transition: background 0.2s; }
+  .dl-btn:hover { background: rgba(0,212,255,0.2); }
+
+  .schema { background: #0D1320; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+  .schema h4 { font-size: 14px; font-weight: 600; color: #00D4FF; font-family: monospace; margin-bottom: 10px; }
+  .schema code { font-size: 13px; color: #9CA3AF; font-family: monospace; line-height: 1.8; }
+
+  pre.codeblock { background: #0D1320; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 24px; overflow-x: auto; font-size: 13px; font-family: monospace; color: #9CA3AF; line-height: 1.8; }
+  pre.codeblock .c { color: #4B5563; }
+
+  .checks { font-family: monospace; font-size: 12px; color: #6B7280; word-break: break-all; }
+  .checks div { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .checks .fname { color: #9CA3AF; }
+
+  .footer { padding: 40px 60px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); background: #080B12; }
+  .footer p { font-size: 14px; color: #6B7280; }
+  .footer p span { color: #00D4FF; font-weight: 600; }
+
+  @media (max-width: 900px) {
+    .nav { padding: 16px 24px; } .nav-links { display: none; }
+    .hero h1 { font-size: 32px; }
+    .hero-stats { gap: 32px; flex-wrap: wrap; justify-content: center; }
+    .section { padding: 60px 24px; }
+    .dl-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">Pro<span>Cripiq</span></a>
+  <div class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="trading.html">Trading</a>
+    <a href="data.html" class="active">Data</a>
+    <a href="design.html">Design</a>
+    <a href="events.html">Events</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">Open Dataset</div>
+  <h1>Crypto Market Data, <span class="accent">Free.</span></h1>
+  <p>Self-collected Hyperliquid &amp; multi-exchange market data: a year of 5-minute candles and funding for ~2,900 assets, plus trade prints and BBO snapshots across 8 exchanges.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">~2,900</div><div class="label">Assets</div></div>
+    <div class="hero-stat"><div class="num">12 mo</div><div class="label">5m Candles</div></div>
+    <div class="hero-stat"><div class="num">8</div><div class="label">Exchanges</div></div>
+    <div class="hero-stat"><div class="num">87M+</div><div class="label">Trade &amp; BBO rows</div></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>Downloads</h2>
+    <p>Pick the bundle you need — no account, no tracking, hosted on GitHub Releases. All files are zip archives; verify integrity with the SHA256 checksums below.</p>
+  </div>
+  <div class="dl-grid">
+    <div class="dl-card">
+      <h3>5m Candles + Funding</h3>
+      <div class="file">hl-5m-candles.zip</div>
+      <p>5-minute OHLCV candles and hourly funding rates for ~2,900 Hyperliquid assets, 2025-08-01 → 2026-08-22. One folder per asset: <code>candles.parquet</code> + <code>funding.parquet</code>.</p>
+      <div class="dl-meta"><span>1.4 GB</span><span>~2,900 assets</span><span>12 months</span><span>Parquet</span></div>
+      <a class="dl-btn" href="https://github.com/procripiq/hl-data/releases/download/v1.0/hl-5m-candles.zip">Download</a>
+    </div>
+    <div class="dl-card">
+      <h3>Multi-Exchange Ticks</h3>
+      <div class="file">hl-ticks-2026-08.zip</div>
+      <p>Quote snapshots (mark, mid, bid/ask, funding, status) across 6 exchanges — one gzipped CSV per day, 2026-08-17 → 2026-08-22.</p>
+      <div class="dl-meta"><span>1.9 GB</span><span>6 days</span><span>6 exchanges</span><span>CSV.gz</span></div>
+      <a class="dl-btn" href="https://github.com/procripiq/hl-data/releases/download/v1.0/hl-ticks-2026-08.zip">Download</a>
+    </div>
+    <div class="dl-card">
+      <h3>Trades + BBO (Parquet)</h3>
+      <div class="file">hl-trades-bbo.zip</div>
+      <p>16.7M trade prints across 7 exchanges plus 71.1M best-bid/offer snapshots partitioned by exchange, as zstd-compressed parquet. Mostly 2026-08-17 → 2026-08-22, sparse rows back to 2026-08-05.</p>
+      <div class="dl-meta"><span>1.3 GB</span><span>87.8M rows</span><span>8 exchanges</span><span>Parquet</span></div>
+      <a class="dl-btn" href="https://github.com/procripiq/hl-data/releases/download/v1.0/hl-trades-bbo.zip">Download</a>
+    </div>
+    <div class="dl-card">
+      <h3>Reference Metadata</h3>
+      <div class="file">hl-reference.zip</div>
+      <p>Per-exchange asset lists, max leverage tables, and Hyperliquid margin tables — handy context for the datasets above.</p>
+      <div class="dl-meta"><span>31 KB</span><span>JSON</span></div>
+      <a class="dl-btn" href="https://github.com/procripiq/hl-data/releases/download/v1.0/hl-reference.zip">Download</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>Schemas</h2>
+    <p>Timestamps in candles/funding are milliseconds UTC; trades and BBO use epoch seconds (float).</p>
+  </div>
+  <div class="schema"><h4>candles.parquet</h4><code>timestamp, timestamp_end, coin, interval, open, high, low, close, volume, trade_count</code></div>
+  <div class="schema"><h4>funding.parquet</h4><code>timestamp, coin, funding_rate, premium</code></div>
+  <div class="schema"><h4>trades.parquet</h4><code>exchange, symbol, coin, trade_id, price, size, side, ts, fetched_at</code></div>
+  <div class="schema"><h4>bbo/exchange=&lt;NAME&gt;/data_0.parquet</h4><code>exchange, coin, bid, ask, bid_size, ask_size, mid, mark, last, funding, ts</code></div>
+  <div class="schema"><h4>ticks csv.gz</h4><code>ts, pair, exchange, mark, mid, bid, ask, bid_size, ask_size, last, funding, status</code></div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>Quick start</h2>
+    <p>Read any bundle with pandas or duckdb.</p>
+  </div>
+  <pre class="codeblock"><span class="c"># pandas</span>
+import pandas as pd
+df = pd.read_parquet("hl_candles/BTC/candles.parquet")
+
+<span class="c"># duckdb — query all BBO partitions at once</span>
+import duckdb
+duckdb.sql("SELECT * FROM 'bbo/exchange=*/data_0.parquet' LIMIT 5")</pre>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <h2>SHA256 Checksums</h2>
+    <p>Verify your downloads — also available as <a href="https://github.com/procripiq/hl-data/releases/download/v1.0/SHA256SUMS.txt" style="color:#00D4FF">SHA256SUMS.txt</a> on the release.</p>
+  </div>
+  <div class="checks">
+    <div><span class="fname">hl-5m-candles.zip</span> &nbsp;ecb656214b39ced06d8af3ec523c4d8c5c7b361fb618fe59142cdb1888b65412</div>
+    <div><span class="fname">hl-ticks-2026-08.zip</span> &nbsp;58c247671d498e13d11e2bba53705d086730f687ce18831d601f5c721326b4e8</div>
+    <div><span class="fname">hl-trades-bbo.zip</span> &nbsp;daaf8529b6111d8fb1d01719a40e255177feb598842dc65d44d921d7024abf1f</div>
+    <div><span class="fname">hl-reference.zip</span> &nbsp;dff43e70faf629b72c9f3e0116fd8d9f0832a59ee95c0b3f1619eefe55c0b828</div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>Built by <span>ProCripiq</span> &middot; Data collected via public exchange feeds, Aug 2026</p>
+  <p>For enquiries: <a href="mailto:procripiq@proton.me" style="color: #6B7280; text-decoration: none;">procripiq@proton.me</a></p>
+</footer>
+
+</body>
+</html>
