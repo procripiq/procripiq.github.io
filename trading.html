@@ -43,6 +43,8 @@
   .hero p { font-size: 19px; color: #9CA3AF; max-width: 640px; }
   .feed-status { margin-top: 22px; font-size: 13px; color: #6B7280; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; }
   .feed-status.err { color: #F87171; }
+  .feed-status.stale { color: #FBBF24; }
+  .feed-status.stale .dot { background: #FBBF24; }
   .feed-status .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10B981; margin-right: 8px; animation: softblink 2.4s infinite; }
   .feed-status.err .dot { background: #F87171; }
   @keyframes softblink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -529,9 +531,9 @@
     openModal('Fleet Equity — 7d', svg, true);
   });
 
-  function setStatus(ok, msg) {
+  function setStatus(ok, msg, stale) {
     var el = document.getElementById('feed-status');
-    el.className = 'feed-status' + (ok ? '' : ' err');
+    el.className = 'feed-status' + (ok ? (stale ? ' stale' : '') : ' err');
     el.innerHTML = '<span class="dot"></span>' + esc(msg);
   }
 
@@ -555,9 +557,12 @@
       if (series.length >= 2) lastSeries = series;
       renderChart(lastSeries || series);
       var gen = data.generated_at_utc ? new Date(data.generated_at_utc) : null;
+      var ageMin = (gen && !isNaN(gen)) ? (Date.now() - gen.getTime()) / 60000 : null;
       setStatus(true, 'generated ' + (gen && !isNaN(gen) ? gen.toISOString().replace('T', ' ').slice(0, 19) + ' UTC' : 'unknown') +
+        ' · data age ' + (ageMin != null ? Math.max(0, ageMin).toFixed(0) + 'm' : '—') +
         ' · ' + (data.delay_note || 'delayed') + ' · via ' + SRC_NAMES[src] +
-        (src > 0 ? ' (cdn down)' : '') + ' · refreshing every 30s');
+        (src > 0 ? ' (cdn down)' : '') + ' · refreshing every 30s',
+        ageMin != null && ageMin > 15);
     }).catch(function(e) {
       setStatus(false, 'telemetry unavailable — retrying');
     });
