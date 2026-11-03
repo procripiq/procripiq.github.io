@@ -262,10 +262,10 @@
 
 <script>
 (function() {
-  // jsDelivr — the publisher purges these right after each push, so data
-  // lands in seconds rather than waiting on the raw.githubusercontent TTL.
-  // primary CDN first, raw GitHub as fallback — jsDelivr edge flaps
-  // must not blank the page while the data itself is fresh
+  // Both sources are fetched in parallel and the response with the
+  // newest data wins — a stale jsDelivr edge returns HTTP 200 with an
+  // old copy (branch->commit resolution caches ~12h and file purges
+  // don't bust it), so error-only fallback is not enough.
   var FLEET_URLS = [
     'https://cdn.jsdelivr.net/gh/procripiq/procripiq.github.io@live-data/fleet.json',
     'https://raw.githubusercontent.com/procripiq/procripiq.github.io/live-data/fleet.json'
@@ -276,25 +276,40 @@
   ];
   var SRC_NAMES = ['cdn', 'github-raw'];
 
+  // newest-content timestamp of a payload: fleet.json stamps
+  // generated_at_utc; series.json is [[ms, v], ...] — use its last point
+  function freshness(j) {
+    if (j && j.generated_at_utc) {
+      var t = Date.parse(j.generated_at_utc);
+      return isNaN(t) ? 0 : t;
+    }
+    if (Array.isArray(j) && j.length) {
+      var last = j[j.length - 1];
+      return (Array.isArray(last) && last[0]) || 0;
+    }
+    return 0;
+  }
+
   function fetchJson(urls, timeoutMs) {
-    var i = 0;
-    function attempt() {
-      if (i >= urls.length) return Promise.reject(new Error('all sources failed'));
-      var url = urls[i++];
+    var attempts = urls.map(function(url, idx) {
       var ctrl = ('AbortController' in window) ? new AbortController() : null;
       var t = ctrl ? setTimeout(function() { ctrl.abort(); }, timeoutMs) : null;
       return fetch(url + '?cb=' + Date.now(), ctrl ? { signal: ctrl.signal } : {})
         .then(function(r) {
           if (t) clearTimeout(t);
           if (!r.ok) throw new Error('http ' + r.status);
-          return r.json().then(function(j) { return { data: j, src: i - 1 }; });
+          return r.json().then(function(j) {
+            return { data: j, src: idx, fresh: freshness(j) };
+          });
         })
-        .catch(function() {
-          if (t) clearTimeout(t);
-          return attempt();
-        });
-    }
-    return attempt();
+        .catch(function() { return null; });
+    });
+    return Promise.all(attempts).then(function(res) {
+      res = res.filter(function(x) { return x !== null; });
+      if (!res.length) return Promise.reject(new Error('all sources failed'));
+      res.sort(function(a, b) { return b.fresh - a.fresh; });
+      return res[0];
+    });
   }
   var POLL_MS = 30000;
   var lastFleet = null;
